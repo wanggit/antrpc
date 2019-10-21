@@ -1,0 +1,7 @@
+# Intializers
+
+# application listeners
+org.springframework.context.ApplicationListener=antrpc.boot.RpcApplicationListener
+
+# auto configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=antrpc.boot.RpcConfiguration
