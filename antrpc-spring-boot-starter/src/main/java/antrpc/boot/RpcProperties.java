@@ -1,10 +1,7 @@
 package antrpc.boot;
 
 import antrpc.client.zk.lb.RoundLoadBalancer;
-import antrpc.commons.config.CircuitBreakerConfig;
-import antrpc.commons.config.MetricsConfig;
-import antrpc.commons.config.RpcCallLogHolderConfig;
-import antrpc.commons.config.RpcClientsConfig;
+import antrpc.commons.config.*;
 import antrpc.commons.constants.ConstantValues;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -34,6 +31,8 @@ public class RpcProperties {
     @NestedConfigurationProperty private RpcCallLogHolderConfig rpcCallLogHolderConfig;
 
     @NestedConfigurationProperty private RpcClientsConfig rpcClientsConfig;
+
+    @NestedConfigurationProperty private CodecConfig codecConfig;
 
     /** direct rpc host -> ip:port */
     private Map<String, String> directHosts;

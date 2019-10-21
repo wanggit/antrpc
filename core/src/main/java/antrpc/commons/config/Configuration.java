@@ -57,8 +57,20 @@ public class Configuration implements IConfiguration {
     /** Metrics Config */
     private MetricsConfig metricsConfig;
 
+    /** Codec Config */
+    private CodecConfig codecConfig;
+
     /** Spring Environment */
     private Environment environment;
+
+    @Override
+    public CodecConfig getCodecConfig() {
+        return null == codecConfig ? new CodecConfig() : codecConfig;
+    }
+
+    public void setCodecConfig(CodecConfig codecConfig) {
+        this.codecConfig = codecConfig;
+    }
 
     @Override
     public RpcClientsConfig getRpcClientsConfig() {

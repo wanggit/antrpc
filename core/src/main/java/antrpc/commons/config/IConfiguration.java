@@ -6,6 +6,8 @@ import org.springframework.core.env.Environment;
 import java.util.Map;
 
 public interface IConfiguration {
+    CodecConfig getCodecConfig();
+
     RpcClientsConfig getRpcClientsConfig();
 
     RpcCallLogHolderConfig getRpcCallLogHolderConfig();

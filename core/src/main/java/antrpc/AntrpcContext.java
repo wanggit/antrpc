@@ -19,12 +19,15 @@ import antrpc.client.zk.zknode.NodeHostContainer;
 import antrpc.client.zk.zknode.ZkNodeBuilder;
 import antrpc.commons.IRpcClients;
 import antrpc.commons.breaker.ICircuitBreaker;
+import antrpc.commons.codec.cryption.CodecHolder;
+import antrpc.commons.codec.cryption.ICodecHolder;
 import antrpc.commons.config.IConfiguration;
 import antrpc.server.IServer;
 import antrpc.server.RpcServer;
 import antrpc.server.exception.RpcServerStartErrorException;
 import antrpc.server.invoker.IRpcRequestBeanInvoker;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.BeanCreationException;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -63,6 +66,8 @@ public class AntrpcContext implements IAntrpcContext {
 
     private IOnFailHolder onFailHolder;
 
+    private ICodecHolder codecHolder;
+
     public AntrpcContext(
             IConfiguration configuration,
             BeanContainer beanContainer,
@@ -77,6 +82,11 @@ public class AntrpcContext implements IAntrpcContext {
     @Override
     public boolean isInited() {
         return inited.get();
+    }
+
+    @Override
+    public ICodecHolder getCodecHolder() {
+        return codecHolder;
     }
 
     @Override
@@ -171,11 +181,21 @@ public class AntrpcContext implements IAntrpcContext {
             this.initZkNodeBuilder();
             this.initBeanContainer();
             this.initRpcCallLogHolder(configuration);
+            this.initCodecHolder();
         }
     }
 
     void destroy() {
         this.server.close();
+    }
+
+    private void initCodecHolder() {
+        try {
+            this.codecHolder = new CodecHolder(configuration.getCodecConfig());
+        } catch (Exception e) {
+            throw new BeanCreationException(
+                    "An exception occurred while initializing " + CodecHolder.class.getName(), e);
+        }
     }
 
     private void initZkRegisterHolder() {

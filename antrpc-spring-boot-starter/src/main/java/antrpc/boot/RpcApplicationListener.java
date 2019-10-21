@@ -223,5 +223,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
         configuration.setGlobalBreakerConfig(rpcProperties.getCircuitBreakers());
         configuration.setRpcCallLogHolderConfig(rpcProperties.getRpcCallLogHolderConfig());
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
+        configuration.setCodecConfig(rpcProperties.getCodecConfig());
     }
 }

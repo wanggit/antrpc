@@ -12,6 +12,7 @@ import antrpc.client.zk.zknode.INodeHostContainer;
 import antrpc.client.zk.zknode.IZkNodeBuilder;
 import antrpc.commons.IRpcClients;
 import antrpc.commons.breaker.ICircuitBreaker;
+import antrpc.commons.codec.cryption.ICodecHolder;
 import antrpc.commons.config.IConfiguration;
 import antrpc.server.invoker.IRpcRequestBeanInvoker;
 
@@ -23,6 +24,8 @@ public interface IAntrpcContext {
      * @return
      */
     boolean isInited();
+
+    ICodecHolder getCodecHolder();
 
     IOnFailHolder getOnFailHolder();
 
