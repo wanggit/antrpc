@@ -1,8 +1,8 @@
 package antrpc.monitor.web;
 
-import antrpc.client.monitor.RpcMonitorApi;
-import antrpc.commons.annotations.RpcService;
-import antrpc.commons.bean.RpcCallLog;
+import io.github.wanggit.antrpc.client.monitor.RpcMonitorApi;
+import io.github.wanggit.antrpc.commons.annotations.RpcService;
+import io.github.wanggit.antrpc.commons.bean.RpcCallLog;
 import antrpc.monitor.domain.Jvm;
 import antrpc.monitor.service.CallLogsService;
 import antrpc.monitor.service.JvmService;

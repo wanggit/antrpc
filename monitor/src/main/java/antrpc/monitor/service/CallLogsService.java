@@ -1,6 +1,6 @@
 package antrpc.monitor.service;
 
-import antrpc.commons.bean.RpcCallLog;
+import io.github.wanggit.antrpc.commons.bean.RpcCallLog;
 import antrpc.monitor.service.dto.LastHourStatDTO;
 
 import java.util.List;

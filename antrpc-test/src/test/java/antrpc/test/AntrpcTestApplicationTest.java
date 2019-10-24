@@ -1,7 +1,8 @@
 package antrpc.test;
 
-import antrpc.test.api.UserDTO;
-import antrpc.test.web.UserResource;
+import io.github.wanggit.antrpc.test.AntrpcTestApplication;
+import io.github.wanggit.antrpc.test.api.UserDTO;
+import io.github.wanggit.antrpc.test.web.UserResource;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

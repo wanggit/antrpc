@@ -1,6 +1,6 @@
 package antrpc.monitor.service.impl;
 
-import antrpc.commons.bean.RpcCallLog;
+import io.github.wanggit.antrpc.commons.bean.RpcCallLog;
 import antrpc.monitor.domain.CallLogs;
 import antrpc.monitor.elasticsearch.parser.ElasticsearchUtils;
 import antrpc.monitor.service.CallLogsService;
