@@ -1,7 +1,7 @@
 package io.github.wanggit.antrpc.test.api;
 
-import antrpc.commons.annotations.RpcMethod;
-import antrpc.commons.annotations.RpcService;
+import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
+import io.github.wanggit.antrpc.commons.annotations.RpcService;
 
 @RpcService
 public interface UserServiceApi {
