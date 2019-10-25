@@ -42,7 +42,7 @@ public class RegisterBeanHelperTest {
         Assert.assertEquals(0, registerBeanMethod.getDurationInSeconds());
 
         Method methodC = ReflectionUtils.findMethod(AService.class, "methodC");
-        final RegisterBean.RegisterBeanMethod methodCBeanMethod =
+        RegisterBean.RegisterBeanMethod methodCBeanMethod =
                 RegisterBeanHelper.getRegisterBeanMethod(methodC);
         Assert.assertNotNull(methodCBeanMethod);
         Assert.assertEquals(0, methodCBeanMethod.getLimit());

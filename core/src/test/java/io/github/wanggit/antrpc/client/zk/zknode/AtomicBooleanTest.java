@@ -8,15 +8,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AtomicBooleanTest {
 
     @Test
-    public void testAtomicBoolean(){
-        final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
+    public void testAtomicBoolean() {
+        AtomicBoolean atomicBoolean = new AtomicBoolean(false);
         for (int i = 0; i < 100; i++) {
-            if (i ==0){
+            if (i == 0) {
                 Assert.assertTrue(atomicBoolean.compareAndSet(false, true));
-            }else {
+            } else {
                 Assert.assertFalse(atomicBoolean.compareAndSet(false, true));
             }
         }
     }
-
 }

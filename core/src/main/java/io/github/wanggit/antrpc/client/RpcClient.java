@@ -1,6 +1,5 @@
 package io.github.wanggit.antrpc.client;
 
-import antrpc.client.connections.*;
 import io.github.wanggit.antrpc.client.connections.*;
 import io.github.wanggit.antrpc.client.future.ReadClientFuture;
 import io.github.wanggit.antrpc.client.future.ReadClientFutureHolder;

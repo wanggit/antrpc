@@ -39,7 +39,7 @@ public class ReadClientFutureHolderTest {
         ExecutorService executorService = Executors.newFixedThreadPool(100);
         List<Future<ReadClientFuture>> callFutures = new ArrayList<>(1000);
         for (int i = 0; i < 1000; i++) {
-            final int idx = i;
+            int idx = i;
             Future<ReadClientFuture> submit =
                     executorService.submit(() -> ReadClientFutureHolder.createFuture(idx));
             callFutures.add(submit);

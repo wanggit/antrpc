@@ -15,7 +15,7 @@ public class CompressUtilTest {
         byte[] uncompress = CompressUtil.uncompress(compress);
         Assert.assertEquals(content, new String(uncompress));
     }
-
 }
 
-//Generated with love by TestMe :) Please report issues and submit feature requests at: http://weirddev.com/forum#!/testme
+// Generated with love by TestMe :) Please report issues and submit feature requests at:
+// http://weirddev.com/forum#!/testme
