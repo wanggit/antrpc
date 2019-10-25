@@ -73,6 +73,7 @@ out/
 ######################
 /log/
 /target/
+settings.xml
 
 ######################
 # Gradle
