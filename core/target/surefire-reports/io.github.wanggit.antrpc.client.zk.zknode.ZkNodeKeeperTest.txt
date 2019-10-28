@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: io.github.wanggit.antrpc.client.zk.zknode.ZkNodeKeeperTest
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 240.173 sec
