@@ -1,6 +1,6 @@
 package io.github.wanggit.antrpc.commons.config;
 
-import io.github.wanggit.antrpc.commons.codec.cryption.AESCodec;
+import io.github.wanggit.antrpc.commons.codec.cryption.NoOpCodec;
 import lombok.Data;
 
 /** 加解密的配置项 */
@@ -11,7 +11,7 @@ public class CodecConfig {
     private boolean enable = false;
 
     /** 加密类型 */
-    private String type = AESCodec.class.getName();
+    private String type = NoOpCodec.class.getName();
 
     /** 密钥Key */
     private String key;

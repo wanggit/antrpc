@@ -1,6 +1,8 @@
 package io.github.wanggit.antrpc.client;
 
 import io.github.wanggit.antrpc.commons.IRpcClients;
+import io.github.wanggit.antrpc.commons.codec.cryption.ICodecHolder;
+import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +14,11 @@ public class RpcClients implements IRpcClients {
 
     private ConcurrentHashMap<String, RpcClient> clients = new ConcurrentHashMap<>();
     private IConfiguration configuration;
+    private ICodecHolder codecHolder;
 
-    public RpcClients(IConfiguration configuration) {
+    public RpcClients(IConfiguration configuration, ICodecHolder codecHolder) {
         this.configuration = configuration;
+        this.codecHolder = codecHolder;
     }
 
     @Override
@@ -24,13 +28,10 @@ public class RpcClients implements IRpcClients {
             synchronized (key.intern()) {
                 if (!clients.containsKey(key)) {
                     RpcClientsConfig rpcClientsConfig = configuration.getRpcClientsConfig();
+                    CodecConfig codecConfig = configuration.getCodecConfig();
                     RpcClient rpcClient =
                             new RpcClient(
-                                    host,
-                                    rpcClientsConfig.getMaxTotal(),
-                                    rpcClientsConfig.getMinIdle(),
-                                    rpcClientsConfig.getMaxIdle(),
-                                    rpcClientsConfig.getMinEvictableIdleTimeMillis());
+                                    host, codecHolder.getCodec(), codecConfig, rpcClientsConfig);
                     rpcClient.open(rpcClientsConfig.getConnectionTimeoutSeconds());
                     clients.put(key, rpcClient);
                 }

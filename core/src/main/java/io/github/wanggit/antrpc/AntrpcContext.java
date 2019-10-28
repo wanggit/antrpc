@@ -171,7 +171,8 @@ public class AntrpcContext implements IAntrpcContext {
     public void init() {
         if (inited.compareAndSet(false, true)) {
             circuitBreaker.init(configuration);
-            this.rpcClients = new RpcClients(configuration);
+            this.initCodecHolder();
+            this.rpcClients = new RpcClients(configuration, codecHolder);
             this.rateLimiting = new RateLimiting();
             this.onFailHolder = new OnFailHolder();
             this.initZkRegisterHolder();
@@ -181,7 +182,6 @@ public class AntrpcContext implements IAntrpcContext {
             this.initZkNodeBuilder();
             this.initBeanContainer();
             this.initRpcCallLogHolder(configuration);
-            this.initCodecHolder();
         }
     }
 

@@ -10,9 +10,13 @@ public class RpcProtocol {
     private int cmdId;
     /** 消息类型 Constants */
     private byte type;
+
     /**
-     * 是否压缩 ConstantValues#COMPRESSED
-     * ConstantValues#UNCOMPRESSED
+     * 是否加密 io.github.wanggit.antrpc.commons.constants.ConstantValues#CODECED
+     * io.github.wanggit.antrpc.commons.constants.ConstantValues#UNCODCED
      */
+    private byte codec;
+
+    /** 是否压缩 ConstantValues#COMPRESSED ConstantValues#UNCOMPRESSED */
     private byte zip;
 }

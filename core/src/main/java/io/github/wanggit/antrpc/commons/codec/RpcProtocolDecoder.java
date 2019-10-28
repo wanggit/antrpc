@@ -2,6 +2,8 @@ package io.github.wanggit.antrpc.commons.codec;
 
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.codec.compress.CompressUtil;
+import io.github.wanggit.antrpc.commons.codec.cryption.ICodec;
+import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,13 +20,18 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
     private static Integer LENGTH_ADJUSTMENT = 0;
     private static Integer INITIAL_BYTES_TO_STRIP = 0;
 
-    public RpcProtocolDecoder() {
+    private CodecConfig codecConfig;
+    private ICodec codec;
+
+    public RpcProtocolDecoder(CodecConfig codecConfig, ICodec codec) {
         super(
                 MAX_FRAME_LENGTH,
                 LENGTH_FIELD_OFFSET,
                 LENGTH_FIELD_LENGTH,
                 LENGTH_ADJUSTMENT,
                 INITIAL_BYTES_TO_STRIP);
+        this.codecConfig = codecConfig;
+        this.codec = codec;
     }
 
     @Override
@@ -40,29 +47,44 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
         byteBuf.markReaderIndex();
         int cmdId = byteBuf.readInt();
         byte type = byteBuf.readByte();
+        byte wasCodec = byteBuf.readByte();
         byte zip = byteBuf.readByte();
         int len = byteBuf.readInt();
         if (byteBuf.readableBytes() < len) {
             byteBuf.resetReaderIndex();
             return null;
         }
-
         byte[] data = new byte[len];
         byteBuf.readBytes(data);
-        if (zip == ConstantValues.COMPRESSED) {
-            if (log.isInfoEnabled()) {
-                log.info(
-                        "cmdId = "
-                                + cmdId
-                                + ". The received packet has been compressed and will be uncompressed before being used.");
+        if (type == ConstantValues.HB_TYPE) {
+            RpcProtocol protocol = new RpcProtocol();
+            protocol.setType(type);
+            protocol.setCodec(wasCodec);
+            protocol.setData(data);
+            protocol.setCmdId(cmdId);
+            protocol.setZip(zip);
+            return protocol;
+        } else if (type == ConstantValues.BIZ_TYPE) {
+            if (zip == ConstantValues.COMPRESSED) {
+                if (log.isInfoEnabled()) {
+                    log.info(
+                            "cmdId = "
+                                    + cmdId
+                                    + ". The received packet has been compressed and will be uncompressed before being used.");
+                }
+                data = CompressUtil.uncompress(data);
             }
-            data = CompressUtil.uncompress(data);
+            if (wasCodec == ConstantValues.CODECED) {
+                data = codec.decrypt(data);
+            }
+            RpcProtocol protocol = new RpcProtocol();
+            protocol.setType(type);
+            protocol.setCodec(wasCodec);
+            protocol.setData(data);
+            protocol.setCmdId(cmdId);
+            protocol.setZip(zip);
+            return protocol;
         }
-        RpcProtocol protocol = new RpcProtocol();
-        protocol.setType(type);
-        protocol.setData(data);
-        protocol.setCmdId(cmdId);
-        protocol.setZip(zip);
-        return protocol;
+        return null;
     }
 }

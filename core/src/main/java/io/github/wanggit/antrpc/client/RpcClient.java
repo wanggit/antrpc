@@ -8,6 +8,9 @@ import io.github.wanggit.antrpc.client.handler.ClientReadHandler;
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolDecoder;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolEncoder;
+import io.github.wanggit.antrpc.commons.codec.cryption.ICodec;
+import io.github.wanggit.antrpc.commons.config.CodecConfig;
+import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import io.github.wanggit.antrpc.commons.utils.EpollUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -27,14 +30,18 @@ public class RpcClient implements IClient {
     private Host host;
     private GenericObjectPoolConfig<Connection> config;
     private ConnectionPool connectionPool;
+    private CodecConfig codecConfig;
+    private ICodec codec;
 
-    RpcClient(Host host, int maxTotal, int minIdle, int maxIdle, int minEvictableIdleTimeMillis) {
+    RpcClient(Host host, ICodec codec, CodecConfig codecConfig, RpcClientsConfig rpcClientsConfig) {
         this.host = host;
+        this.codec = codec;
+        this.codecConfig = codecConfig;
         config = new GenericObjectPoolConfig<>();
-        config.setMaxTotal(maxTotal);
-        config.setMinIdle(minIdle);
-        config.setMaxIdle(maxIdle);
-        config.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
+        config.setMaxTotal(rpcClientsConfig.getMaxTotal());
+        config.setMinIdle(rpcClientsConfig.getMinIdle());
+        config.setMaxIdle(rpcClientsConfig.getMaxIdle());
+        config.setMinEvictableIdleTimeMillis(rpcClientsConfig.getMinEvictableIdleTimeMillis());
         if (log.isInfoEnabled()) {
             log.info(
                     "Prepare to connect to "
@@ -42,11 +49,11 @@ public class RpcClient implements IClient {
                             + ":"
                             + host.getPort()
                             + ", maxTotal="
-                            + maxTotal
+                            + rpcClientsConfig.getMaxTotal()
                             + ", maxIdle="
-                            + maxIdle
+                            + rpcClientsConfig.getMaxIdle()
                             + ", minIdle="
-                            + minIdle
+                            + rpcClientsConfig.getMinIdle()
                             + " for connection pool configuration.");
         }
     }
@@ -61,9 +68,9 @@ public class RpcClient implements IClient {
                             protected void initChannel(Channel ch) throws Exception {
                                 ch.pipeline()
                                         .addLast(
-                                                new RpcProtocolDecoder(),
+                                                new RpcProtocolDecoder(codecConfig, codec),
                                                 new ClientReadHandler(),
-                                                new RpcProtocolEncoder(),
+                                                new RpcProtocolEncoder(codecConfig, codec),
                                                 new IdleStateHandler(3, 3, 0),
                                                 new ClientIdleHandler());
                             }

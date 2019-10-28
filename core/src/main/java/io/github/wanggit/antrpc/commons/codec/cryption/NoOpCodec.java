@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.commons.codec.cryption;
 
+/** */
 public class NoOpCodec implements ICodec {
     @Override
     public void setKey(String key) {}

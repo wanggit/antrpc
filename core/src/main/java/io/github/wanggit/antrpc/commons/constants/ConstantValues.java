@@ -14,6 +14,12 @@ public interface ConstantValues {
     /** 是否压缩 */
     byte UNCOMPRESSED = 0x4;
 
+    /** 是否已加密 */
+    byte CODECED = 0x5;
+
+    /** 是否已加密 */
+    byte UNCODCED = 0x6;
+
     /** 是否需要压缩 */
     int NEED_COMPRESS_LENGTH = 1024;
 

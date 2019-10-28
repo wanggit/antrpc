@@ -43,10 +43,18 @@ public class RpcServer implements IServer {
                             protected void initChannel(Channel ch) throws Exception {
                                 ch.pipeline()
                                         .addLast(
-                                                new RpcProtocolDecoder(),
+                                                new RpcProtocolDecoder(
+                                                        antrpcContext
+                                                                .getConfiguration()
+                                                                .getCodecConfig(),
+                                                        antrpcContext.getCodecHolder().getCodec()),
                                                 new ServerReadHandler(
                                                         antrpcContext.getRpcRequestBeanInvoker()),
-                                                new RpcProtocolEncoder());
+                                                new RpcProtocolEncoder(
+                                                        antrpcContext
+                                                                .getConfiguration()
+                                                                .getCodecConfig(),
+                                                        antrpcContext.getCodecHolder().getCodec()));
                             }
                         })
                 .option(ChannelOption.SO_BACKLOG, 1024)
