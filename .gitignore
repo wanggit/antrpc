@@ -73,6 +73,7 @@ out/
 ######################
 /log/
 /target/
+**/target/
 settings.xml
 private_readme.txt
 
