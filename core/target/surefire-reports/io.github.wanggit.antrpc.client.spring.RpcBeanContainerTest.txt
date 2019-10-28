@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.github.wanggit.antrpc.client.spring.RpcBeanContainerTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.104 sec
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.011 sec

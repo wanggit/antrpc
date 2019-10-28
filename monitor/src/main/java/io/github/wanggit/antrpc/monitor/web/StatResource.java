@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
@@ -91,7 +92,7 @@ public class StatResource {
             jvm.setAttrName(attrNames[RandomUtils.nextInt(0, attrNames.length)]);
             jvm.setAttrValue(String.valueOf(RandomUtils.nextLong(0, Long.MAX_VALUE)));
             jvm.setTs(System.currentTimeMillis());
-            jvmService.save(jvm);
+            jvmService.save(Lists.newArrayList(jvm));
 
             /*try {
                 Future<Integer> future =

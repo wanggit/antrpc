@@ -74,6 +74,7 @@ out/
 /log/
 /target/
 settings.xml
+private_readme.txt
 
 ######################
 # Gradle

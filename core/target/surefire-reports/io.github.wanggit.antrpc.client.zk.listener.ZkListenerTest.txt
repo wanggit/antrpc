@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.github.wanggit.antrpc.client.zk.listener.ZkListenerTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.075 sec
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.044 sec
