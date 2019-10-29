@@ -1,39 +1,43 @@
 package io.github.wanggit.antrpc.client.spring;
 
-import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
+import io.github.wanggit.antrpc.client.rate.IRateLimiting;
+import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
+import io.github.wanggit.antrpc.commons.IRpcClients;
+import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RpcBeanContainer implements BeanContainer {
 
-    private ConcurrentHashMap<String, Object> beans = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> beans = new ConcurrentHashMap<>();
 
-    private IAntrpcContext antrpcContext;
+    private final CglibMethodInterceptor cglibMethodInterceptor;
 
-    private CglibMethodInterceptor cglibMethodInterceptor;
-
-    private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
-
-    @Override
-    public void setAntrpcContext(IAntrpcContext antrpcContext) {
-        if (atomicBoolean.compareAndSet(false, true)) {
-            this.antrpcContext = antrpcContext;
-            this.init();
-        }
-    }
-
-    private void init() {
-        this.cglibMethodInterceptor = new CglibMethodInterceptor(antrpcContext);
+    public RpcBeanContainer(
+            IRateLimiting rateLimiting,
+            IRpcCallLogHolder rpcCallLogHolder,
+            IOnFailHolder onFailHolder,
+            ICircuitBreaker circuitBreaker,
+            IRpcClients rpcClients,
+            ISerializerHolder serializerHolder,
+            INodeHostContainer nodeHostContainer) {
+        this.cglibMethodInterceptor =
+                new CglibMethodInterceptor(
+                        rateLimiting,
+                        rpcCallLogHolder,
+                        onFailHolder,
+                        circuitBreaker,
+                        rpcClients,
+                        serializerHolder,
+                        nodeHostContainer);
     }
 
     @Override
     public Object getOrCreateBean(Class clazz) {
         if (null == clazz) {
             throw new IllegalArgumentException("clazz cannot be null.");
-        }
-        if (null == antrpcContext) {
-            throw new IllegalStateException("AntrpcContext has not been initialized.");
         }
         if (null == this.cglibMethodInterceptor) {
             throw new IllegalStateException("BeanContainer has not been initialized.");

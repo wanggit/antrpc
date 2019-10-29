@@ -1,11 +1,14 @@
 package io.github.wanggit.antrpc.server;
 
-import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolDecoder;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolEncoder;
+import io.github.wanggit.antrpc.commons.codec.cryption.ICodecHolder;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
+import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.utils.EpollUtil;
 import io.github.wanggit.antrpc.server.handler.ServerReadHandler;
+import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -21,11 +24,21 @@ public class RpcServer implements IServer {
     private MultithreadEventLoopGroup bossGroup = EpollUtil.newEventLoopGroupInstance();
     private MultithreadEventLoopGroup workerGroup = EpollUtil.newEventLoopGroupInstance();
     private Channel channel;
-    private IAntrpcContext antrpcContext;
     private AtomicBoolean activeAtomicBoolean = new AtomicBoolean(false);
+    private final IConfiguration configuration;
+    private final ICodecHolder codecHolder;
+    private final IRpcRequestBeanInvoker rpcRequestBeanInvoker;
+    private final ISerializerHolder serializerHolder;
 
-    public RpcServer(IAntrpcContext antrpcContext) {
-        this.antrpcContext = antrpcContext;
+    public RpcServer(
+            IConfiguration configuration,
+            ICodecHolder codecHolder,
+            IRpcRequestBeanInvoker rpcRequestBeanInvoker,
+            ISerializerHolder serializerHolder) {
+        this.configuration = configuration;
+        this.codecHolder = codecHolder;
+        this.rpcRequestBeanInvoker = rpcRequestBeanInvoker;
+        this.serializerHolder = serializerHolder;
     }
 
     @Override
@@ -44,17 +57,13 @@ public class RpcServer implements IServer {
                                 ch.pipeline()
                                         .addLast(
                                                 new RpcProtocolDecoder(
-                                                        antrpcContext
-                                                                .getConfiguration()
-                                                                .getCodecConfig(),
-                                                        antrpcContext.getCodecHolder().getCodec()),
+                                                        configuration.getCodecConfig(),
+                                                        codecHolder.getCodec()),
                                                 new ServerReadHandler(
-                                                        antrpcContext.getRpcRequestBeanInvoker()),
+                                                        rpcRequestBeanInvoker, serializerHolder),
                                                 new RpcProtocolEncoder(
-                                                        antrpcContext
-                                                                .getConfiguration()
-                                                                .getCodecConfig(),
-                                                        antrpcContext.getCodecHolder().getCodec()));
+                                                        configuration.getCodecConfig(),
+                                                        codecHolder.getCodec()));
                             }
                         })
                 .option(ChannelOption.SO_BACKLOG, 1024)
@@ -72,7 +81,6 @@ public class RpcServer implements IServer {
 
     @Override
     public void close() {
-        antrpcContext = null;
         channel.close();
         workerGroup.shutdownGracefully();
         bossGroup.shutdownGracefully();

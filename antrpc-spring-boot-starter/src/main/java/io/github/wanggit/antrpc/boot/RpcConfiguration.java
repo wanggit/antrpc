@@ -7,9 +7,7 @@ import com.codahale.metrics.servlets.HealthCheckServlet;
 import com.codahale.metrics.servlets.MetricsServlet;
 import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.listener.ZkListener;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
-import io.github.wanggit.antrpc.client.zk.zknode.ZkNodeKeeper;
 import io.github.wanggit.antrpc.commons.config.MetricsConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,16 +40,6 @@ public class RpcConfiguration implements ServletContextInitializer {
     @Bean
     public ZkRegister zkRegister() {
         return new ZkRegister();
-    }
-
-    @Bean
-    public ZkListener zkListener() {
-        return new ZkListener();
-    }
-
-    @Bean
-    public ZkNodeKeeper zkNodeKeeper() {
-        return new ZkNodeKeeper();
     }
 
     @Bean

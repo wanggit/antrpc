@@ -1,23 +1,37 @@
 package io.github.wanggit.antrpc.client.spring;
 
-import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotationUtils;
 
-public class OnFailProcessor implements BeanPostProcessor, ApplicationContextAware {
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-    private IAntrpcContext antrpcContext;
+@Slf4j
+public class OnFailProcessor implements IOnFailProcessor, BeanPostProcessor {
 
+    private final Map<Class, Object> cache = new ConcurrentHashMap<>();
+
+    // 3
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        antrpcContext = applicationContext.getBean(IAntrpcContext.class);
+    public void init(IOnFailHolder onFailHolder) {
+        for (Map.Entry<Class, Object> entry : cache.entrySet()) {
+            if (log.isInfoEnabled()) {
+                log.info(
+                        entry.getValue()
+                                + " is registered as a failed callback for "
+                                + entry.getKey().getName()
+                                + ".");
+            }
+            onFailHolder.addOnFail(entry.getKey(), entry.getValue());
+        }
+        cache.clear();
     }
 
+    // 1
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName)
             throws BeansException {
@@ -30,11 +44,12 @@ public class OnFailProcessor implements BeanPostProcessor, ApplicationContextAwa
                                 + onRpcFail.clazz().getName()
                                 + " interface.");
             }
-            antrpcContext.getOnFailHolder().addOnFail(onRpcFail.clazz(), bean);
+            cache.put(onRpcFail.clazz(), bean);
         }
         return bean;
     }
 
+    // 2
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName)
             throws BeansException {

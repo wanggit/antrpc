@@ -9,6 +9,7 @@ import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolDecoder;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolEncoder;
 import io.github.wanggit.antrpc.commons.codec.cryption.ICodec;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import io.github.wanggit.antrpc.commons.utils.EpollUtil;
@@ -32,11 +33,18 @@ public class RpcClient implements IClient {
     private ConnectionPool connectionPool;
     private CodecConfig codecConfig;
     private ICodec codec;
+    private ISerializerHolder serializerHolder;
 
-    RpcClient(Host host, ICodec codec, CodecConfig codecConfig, RpcClientsConfig rpcClientsConfig) {
+    RpcClient(
+            Host host,
+            ICodec codec,
+            CodecConfig codecConfig,
+            RpcClientsConfig rpcClientsConfig,
+            ISerializerHolder serializerHolder) {
         this.host = host;
         this.codec = codec;
         this.codecConfig = codecConfig;
+        this.serializerHolder = serializerHolder;
         config = new GenericObjectPoolConfig<>();
         config.setMaxTotal(rpcClientsConfig.getMaxTotal());
         config.setMinIdle(rpcClientsConfig.getMinIdle());
@@ -85,7 +93,9 @@ public class RpcClient implements IClient {
     public ReadClientFuture send(RpcProtocol rpcProtocol) {
         Connection connection = null;
         try {
-            ReadClientFuture future = ReadClientFutureHolder.createFuture(rpcProtocol.getCmdId());
+            ReadClientFuture future =
+                    ReadClientFutureHolder.createFuture(
+                            rpcProtocol.getCmdId(), serializerHolder.getSerializer());
             connection = connectionPool.borrow();
             connection.send(rpcProtocol);
             return future;

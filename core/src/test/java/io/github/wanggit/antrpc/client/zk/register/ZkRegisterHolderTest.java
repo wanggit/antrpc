@@ -1,10 +1,8 @@
 package io.github.wanggit.antrpc.client.zk.register;
 
 import io.github.wanggit.antrpc.AntrpcContext;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomUtils;
@@ -34,23 +32,18 @@ public class ZkRegisterHolderTest {
         GenericApplicationContext applicationContext = new GenericApplicationContext();
         applicationContext.setEnvironment(environment);
         applicationContext.refresh();
-
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        configuration,
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        antrpcContext.init();
+        BeansToSpringContextUtil.toSpringContext(applicationContext);
+        AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.init(applicationContext);
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
-        ZkRegister register = new ZkRegister();
-        applicationContext.getBeanFactory().registerSingleton(Register.class.getName(), register);
-        register.setApplicationContext(applicationContext);
-        antrpcContext.setRegister(register);
 
-        ZkRegisterHolder zkRegisterHolder = new ZkRegisterHolder(antrpcContext);
+        ZkRegisterHolder zkRegisterHolder =
+                new ZkRegisterHolder(
+                        antrpcContext.getRegister(),
+                        antrpcContext.getZkNodeBuilder(),
+                        antrpcContext.getZkClient());
         WaitUtil.wait(70, 2);
         RegisterBean registerBean = new RegisterBean();
         registerBean.setClassName(AInterface.class.getName());

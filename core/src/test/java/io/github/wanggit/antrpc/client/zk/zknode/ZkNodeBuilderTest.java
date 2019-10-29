@@ -3,10 +3,8 @@ package io.github.wanggit.antrpc.client.zk.zknode;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
@@ -17,6 +15,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.nio.charset.Charset;
 
@@ -25,15 +25,21 @@ public class ZkNodeBuilderTest {
     @Test
     public void testBuild() throws Exception {
         int rpcPort = RandomUtils.nextInt(1000, 9999);
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
+        MockEnvironment mockEnvironment =
+                new MockEnvironment()
+                        .withProperty("spring.application.name", "test")
+                        .withProperty("antrpc.port", String.valueOf(rpcPort))
+                        .withProperty(
+                                "server.port", String.valueOf(RandomUtils.nextInt(2000, 9999)));
+        genericApplicationContext.setEnvironment(mockEnvironment);
+        genericApplicationContext.refresh();
+        BeansToSpringContextUtil.toSpringContext(genericApplicationContext);
         Configuration configuration = new Configuration();
         configuration.setPort(rpcPort);
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        configuration,
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        antrpcContext.init();
+        configuration.setEnvironment(mockEnvironment);
+        AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.init(genericApplicationContext);
         ZkNodeBuilder zkNodeBuilder =
                 new ZkNodeBuilder(
                         antrpcContext.getZkClient().getCurator(),
@@ -69,19 +75,22 @@ public class ZkNodeBuilderTest {
     @Test
     public void testRemoteCreateZkNode() throws Exception {
         int rpcPort = RandomUtils.nextInt(1000, 9999);
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
+        MockEnvironment mockEnvironment =
+                new MockEnvironment()
+                        .withProperty("spring.application.name", "test")
+                        .withProperty("antrpc.port", String.valueOf(rpcPort))
+                        .withProperty(
+                                "server.port", String.valueOf(RandomUtils.nextInt(2000, 9999)));
+        genericApplicationContext.setEnvironment(mockEnvironment);
         Configuration configuration = new Configuration();
         configuration.setPort(rpcPort);
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        configuration,
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        antrpcContext.init();
-        ZkNodeBuilder zkNodeBuilder =
-                new ZkNodeBuilder(
-                        antrpcContext.getZkClient().getCurator(),
-                        antrpcContext.getNodeHostContainer());
+        configuration.setEnvironment(mockEnvironment);
+        genericApplicationContext.refresh();
+        BeansToSpringContextUtil.toSpringContext(genericApplicationContext);
+        AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.init(genericApplicationContext);
+        ZkNodeBuilder zkNodeBuilder = (ZkNodeBuilder) antrpcContext.getZkNodeBuilder();
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();
         ipNodeDataBean.setHttpPort(RandomUtils.nextInt(1000, 9999));
         ipNodeDataBean.setRpcPort(rpcPort);

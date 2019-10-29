@@ -13,9 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public final class NodeHostContainer implements INodeHostContainer {
 
-    private ConcurrentHashMap<String, List<NodeHostEntity>> entities = new ConcurrentHashMap<>();
-    private LoadBalancerHelper loadBalancerHelper;
-    private Map<String, DirectNodeHostEntity> directHosts;
+    private final ConcurrentHashMap<String, List<NodeHostEntity>> entities =
+            new ConcurrentHashMap<>();
+    private final LoadBalancerHelper loadBalancerHelper;
+    private final Map<String, DirectNodeHostEntity> directHosts;
 
     public NodeHostContainer(
             LoadBalancerHelper loadBalancerHelper, Map<String, DirectNodeHostEntity> directHosts) {

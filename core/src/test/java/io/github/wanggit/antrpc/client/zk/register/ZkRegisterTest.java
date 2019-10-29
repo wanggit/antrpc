@@ -2,12 +2,10 @@ package io.github.wanggit.antrpc.client.zk.register;
 
 import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.AntrpcContext;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
@@ -28,29 +26,25 @@ public class ZkRegisterTest {
     @Test
     public void testRegister() throws Exception {
         Integer rpcPort = RandomUtils.nextInt(1000, 9999);
-        Configuration configuration = new Configuration();
-        configuration.setPort(rpcPort);
-        IAntrpcContext antrpcContext =
-                new AntrpcContext(
-                        configuration,
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
         GenericApplicationContext applicationContext = new GenericApplicationContext();
         MockEnvironment environment = new MockEnvironment();
         environment
                 .withProperty("spring.application.name", "test")
                 .withProperty("antrpc.port", rpcPort.toString())
                 .withProperty("server.port", String.valueOf(RandomUtils.nextInt(1000, 9999)));
+        Configuration configuration = new Configuration();
+        configuration.setPort(rpcPort);
         configuration.setEnvironment(environment);
+        IAntrpcContext antrpcContext = new AntrpcContext(configuration);
         applicationContext.refresh();
-        antrpcContext.init();
-        ZkRegister register = new ZkRegister();
-        applicationContext.getBeanFactory().registerSingleton(Register.class.getName(), register);
+        BeansToSpringContextUtil.toSpringContext(applicationContext);
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
-        register.setApplicationContext(applicationContext);
+        AInterface aInterface = new AImpl();
+        ZkRegister register = (ZkRegister) applicationContext.getBean(Register.class);
+        register.postProcessBeforeInitialization(aInterface, "aInterface");
+        antrpcContext.init(applicationContext);
 
         String ipPath =
                 "/"
@@ -67,9 +61,6 @@ public class ZkRegisterTest {
         Assert.assertEquals(
                 ApplicationNameUtil.getApplicationName(environment), ipNodeDataBean.getAppName());
         Assert.assertEquals(rpcPort, ipNodeDataBean.getRpcPort());
-
-        AInterface aInterface = new AImpl();
-        register.postProcessBeforeInitialization(aInterface, "aInterface");
 
         IZkRegisterHolder zkRegisterHolder = antrpcContext.getZkRegisterHolder();
         Field field =

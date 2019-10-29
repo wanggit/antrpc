@@ -1,17 +1,20 @@
 package io.github.wanggit.antrpc.client.spring;
 
 import com.alibaba.fastjson.JSONObject;
-import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.RpcClient;
 import io.github.wanggit.antrpc.client.connections.ConnectionNotActiveException;
 import io.github.wanggit.antrpc.client.future.ReadClientFuture;
+import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
+import io.github.wanggit.antrpc.client.rate.IRateLimiting;
 import io.github.wanggit.antrpc.client.zk.exception.InterfaceProviderNotFoundException;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBeanHelper;
+import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
+import io.github.wanggit.antrpc.commons.IRpcClients;
 import io.github.wanggit.antrpc.commons.bean.*;
 import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
-import io.github.wanggit.antrpc.commons.codec.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import lombok.extern.slf4j.Slf4j;
@@ -23,10 +26,29 @@ import java.lang.reflect.Method;
 @Slf4j
 public class CglibMethodInterceptor implements MethodInterceptor {
 
-    private IAntrpcContext antrpcContext;
+    private final IRateLimiting rateLimiting;
+    private final IRpcCallLogHolder rpcCallLogHolder;
+    private final IOnFailHolder onFailHolder;
+    private final ICircuitBreaker circuitBreaker;
+    private final IRpcClients rpcClients;
+    private final ISerializerHolder serializerHolder;
+    private final INodeHostContainer nodeHostContainer;
 
-    CglibMethodInterceptor(IAntrpcContext antrpcContext) {
-        this.antrpcContext = antrpcContext;
+    CglibMethodInterceptor(
+            IRateLimiting rateLimiting,
+            IRpcCallLogHolder rpcCallLogHolder,
+            IOnFailHolder onFailHolder,
+            ICircuitBreaker circuitBreaker,
+            IRpcClients rpcClients,
+            ISerializerHolder serializerHolder,
+            INodeHostContainer nodeHostContainer) {
+        this.rateLimiting = rateLimiting;
+        this.rpcCallLogHolder = rpcCallLogHolder;
+        this.onFailHolder = onFailHolder;
+        this.circuitBreaker = circuitBreaker;
+        this.rpcClients = rpcClients;
+        this.serializerHolder = serializerHolder;
+        this.nodeHostContainer = nodeHostContainer;
     }
 
     @Override
@@ -54,7 +76,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         RegisterBean.RegisterBeanMethod registerBeanMethod =
                 RegisterBeanHelper.getRegisterBeanMethod(method);
         // 频控限制，超过频控限制就返回null.
-        if (!antrpcContext.getRateLimiting().allowAccess(registerBeanMethod)) {
+        if (!rateLimiting.allowAccess(registerBeanMethod)) {
             String errorMessage =
                     registerBeanMethod.toString()
                             + " interface calls reach frequency control limit, "
@@ -67,15 +89,14 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             }
             RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
             rpcCallLog.setErrorMessage(errorMessage);
-            antrpcContext.getRpcCallLogHolder().log(rpcCallLog);
-            return antrpcContext.getOnFailHolder().doOnFail(anInterface, method, args);
+            rpcCallLogHolder.log(rpcCallLog);
+            return onFailHolder.doOnFail(anInterface, method, args);
         }
         RpcRequestBean rpcRequestBean = createRpcRequestBean(className, registerBeanMethod, args);
         RpcProtocol rpcProtocol = createRpcProtocol(rpcRequestBean);
         // 调用日志 RpcCallLog
         NodeHostEntity hostEntity = chooseNodeHostEntity(className, registerBeanMethod);
 
-        ICircuitBreaker circuitBreaker = antrpcContext.getCircuitBreaker();
         // 熔断器判断
         RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
         rpcCallLog.setIp(hostEntity.getIp());
@@ -116,14 +137,12 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             rpcCallLog.setEnd(System.currentTimeMillis());
             rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
             rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            antrpcContext.getRpcCallLogHolder().log(rpcCallLog);
+            rpcCallLogHolder.log(rpcCallLog);
             return result;
         } else {
             // 熔断器被打开，记录日志，返回null.
             CircuitBreakerConfig breaker =
-                    antrpcContext
-                            .getCircuitBreaker()
-                            .getInterfaceCircuitBreaker(rpcCallLog.getClassName());
+                    circuitBreaker.getInterfaceCircuitBreaker(rpcCallLog.getClassName());
             String message = null;
             if (null == breaker) {
                 message =
@@ -144,8 +163,8 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             newRpcCallLog.setErrorMessage(errorMessage);
             newRpcCallLog.setRequestId(rpcRequestBean.getId());
             newRpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            antrpcContext.getRpcCallLogHolder().log(newRpcCallLog);
-            return antrpcContext.getOnFailHolder().doOnFail(anInterface, method, args);
+            rpcCallLogHolder.log(newRpcCallLog);
+            return onFailHolder.doOnFail(anInterface, method, args);
         }
     }
 
@@ -169,7 +188,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
                             + rpcCallLog.getCallLogKey();
             rpcCallLog.setErrorMessage(errorMessage);
             rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            antrpcContext.getRpcCallLogHolder().log(rpcCallLog);
+            rpcCallLogHolder.log(rpcCallLog);
             throw new NullPointerException(errorMessage);
         }
         return rpcResponseBean;
@@ -182,11 +201,11 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             RegisterBean.RegisterBeanMethod registerBeanMethod,
             String className,
             RpcRequestBean rpcRequestBean) {
-        RpcClient rpcClient = antrpcContext.getRpcClients().getRpcClient(hostEntity);
+        RpcClient rpcClient = rpcClients.getRpcClient(hostEntity);
         ReadClientFuture future = null;
         try {
             future = rpcClient.send(rpcProtocol);
-        } catch (ConnectionNotActiveException cnae) {
+        } catch (RuntimeException cnae) {
             RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
             rpcCallLog.setPort(hostEntity.getPort());
             rpcCallLog.setIp(hostEntity.getIp());
@@ -196,7 +215,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
                     "Connection not alive. more info is " + rpcCallLog.getCallLogKey();
             rpcCallLog.setErrorMessage(errorMessage);
             rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            antrpcContext.getRpcCallLogHolder().log(rpcCallLog);
+            rpcCallLogHolder.log(rpcCallLog);
             throw new ConnectionNotActiveException(errorMessage, cnae);
         }
         return future;
@@ -207,10 +226,10 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         NodeHostEntity hostEntity;
         RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
         try {
-            hostEntity = antrpcContext.getNodeHostContainer().choose(className);
+            hostEntity = nodeHostContainer.choose(className);
         } catch (InterfaceProviderNotFoundException e) {
             rpcCallLog.setErrorMessage(e.getMessage());
-            antrpcContext.getRpcCallLogHolder().log(rpcCallLog);
+            rpcCallLogHolder.log(rpcCallLog);
             throw e;
         }
         return hostEntity;
@@ -234,7 +253,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         RpcProtocol rpcProtocol = new RpcProtocol();
         rpcProtocol.setType(ConstantValues.BIZ_TYPE);
         rpcProtocol.setCmdId(IdGenHelper.getInstance().getId());
-        rpcProtocol.setData(KryoSerializer.getInstance().serialize(requestBean));
+        rpcProtocol.setData(serializerHolder.getSerializer().serialize(requestBean));
         return rpcProtocol;
     }
 

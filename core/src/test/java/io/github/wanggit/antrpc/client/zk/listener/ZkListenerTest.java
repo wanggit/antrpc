@@ -3,12 +3,10 @@ package io.github.wanggit.antrpc.client.zk.listener;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
@@ -28,23 +26,21 @@ public class ZkListenerTest {
     public void testZkListener() throws Exception {
         GenericApplicationContext applicationContext = new GenericApplicationContext();
         MockEnvironment environment = new MockEnvironment();
-        environment.withProperty("server.port", String.valueOf(RandomUtils.nextInt(5000, 9000)));
+        environment
+                .withProperty("server.port", String.valueOf(RandomUtils.nextInt(2000, 9000)))
+                .withProperty("antrpc.port", String.valueOf(RandomUtils.nextInt(2000, 9000)))
+                .withProperty("spring.application.name", "test");
         applicationContext.setEnvironment(environment);
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        Configuration configuration = (Configuration) antrpcContext.getConfiguration();
-        configuration.setPort(RandomUtils.nextInt(5000, 9000));
         applicationContext.refresh();
-        antrpcContext.init();
+        BeansToSpringContextUtil.toSpringContext(applicationContext);
+        AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
-        ZkListener zkListener = new ZkListener();
-        zkListener.setApplicationContext(applicationContext);
+        Configuration configuration = (Configuration) antrpcContext.getConfiguration();
+        configuration.setPort(RandomUtils.nextInt(5000, 9000));
+        configuration.setEnvironment(environment);
+        antrpcContext.init(applicationContext);
 
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();
         ipNodeDataBean.setAppName("testApp");

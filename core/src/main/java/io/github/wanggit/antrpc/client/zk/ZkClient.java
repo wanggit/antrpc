@@ -8,7 +8,7 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 
 public class ZkClient implements IZkClient {
 
-    private CuratorFramework zkClient = null;
+    private final CuratorFramework zkClient;
 
     public ZkClient(IConfiguration configuration) {
         RetryPolicy retryPolicy =

@@ -18,6 +18,10 @@ public final class CircuitBreaker implements ICircuitBreaker {
     private CircuitBreakerConfig globalConfig = null;
     private Map<String, CircuitBreakerConfig> interfaceConfigs = null;
 
+    public CircuitBreaker(IConfiguration configuration) {
+        init(configuration);
+    }
+
     @Override
     public CircuitBreakerConfig getInterfaceCircuitBreaker(String className) {
         if (null != interfaceConfigs) {
@@ -26,8 +30,7 @@ public final class CircuitBreaker implements ICircuitBreaker {
         return null;
     }
 
-    @Override
-    public void init(IConfiguration configuration) {
+    private void init(IConfiguration configuration) {
         if (null != configuration.getGlobalBreakerConfig()) {
             configuration.getGlobalBreakerConfig().checkSelf();
             this.globalConfig = configuration.getGlobalBreakerConfig();

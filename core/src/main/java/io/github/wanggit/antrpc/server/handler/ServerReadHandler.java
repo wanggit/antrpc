@@ -4,7 +4,7 @@ import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
 import io.github.wanggit.antrpc.commons.bean.SerialNumberThreadLocal;
-import io.github.wanggit.antrpc.commons.codec.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,9 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> {
 
     private IRpcRequestBeanInvoker rpcRequestBeanInvoker;
+    private ISerializerHolder serializerHolder;
 
-    public ServerReadHandler(IRpcRequestBeanInvoker rpcRequestBeanInvoker) {
+    public ServerReadHandler(
+            IRpcRequestBeanInvoker rpcRequestBeanInvoker, ISerializerHolder serializerHolder) {
         this.rpcRequestBeanInvoker = rpcRequestBeanInvoker;
+        this.serializerHolder = serializerHolder;
     }
 
     @Override
@@ -30,7 +33,7 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
         }
 
         RpcRequestBean requestBean =
-                (RpcRequestBean) KryoSerializer.getInstance().deserialize(msg.getData());
+                (RpcRequestBean) serializerHolder.getSerializer().deserialize(msg.getData());
 
         SerialNumberThreadLocal.TraceEntity traceEntity = new SerialNumberThreadLocal.TraceEntity();
         traceEntity.setSerialNumber(requestBean.getSerialNumber());
@@ -41,7 +44,7 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
             RpcProtocol protocol = new RpcProtocol();
             protocol.setCmdId(msg.getCmdId());
             protocol.setType(msg.getType());
-            protocol.setData(KryoSerializer.getInstance().serialize(bean));
+            protocol.setData(serializerHolder.getSerializer().serialize(bean));
             ctx.channel().writeAndFlush(protocol);
         }
     }

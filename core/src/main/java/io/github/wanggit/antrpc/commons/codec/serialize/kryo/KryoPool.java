@@ -1,4 +1,4 @@
-package io.github.wanggit.antrpc.commons.codec.kryo;
+package io.github.wanggit.antrpc.commons.codec.serialize.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import lombok.extern.slf4j.Slf4j;

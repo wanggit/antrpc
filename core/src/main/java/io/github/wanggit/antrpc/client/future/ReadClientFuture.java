@@ -2,7 +2,7 @@ package io.github.wanggit.antrpc.client.future;
 
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
-import io.github.wanggit.antrpc.commons.codec.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializer;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -15,6 +15,16 @@ public class ReadClientFuture {
     private final Condition done = lock.newCondition();
     private final int timeout = 10;
     private RpcProtocol response;
+    private ISerializer serializer;
+
+    ReadClientFuture(ISerializer serializer) {
+        this.serializer = serializer;
+    }
+
+    private void clear() {
+        this.response = null;
+        this.serializer = null;
+    }
 
     public RpcResponseBean get() {
         RpcProtocol result = null;
@@ -26,17 +36,15 @@ public class ReadClientFuture {
                 done.await(timeout, TimeUnit.SECONDS);
                 result = response;
             }
-
+            if (null != result) {
+                return (RpcResponseBean) serializer.deserialize(result.getData());
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
             lock.unlock();
+            clear();
         }
-
-        if (null != result) {
-            return (RpcResponseBean) KryoSerializer.getInstance().deserialize(result.getData());
-        }
-
         return null;
     }
 

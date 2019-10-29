@@ -2,19 +2,15 @@ package io.github.wanggit.antrpc.client.spring;
 
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
 import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
-import io.github.wanggit.antrpc.server.invoker.RpcRequestBeanInvoker;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,51 +22,53 @@ public class CglibMethodInterceptorTest {
 
     @Test
     public void testRateLimitingAndDefaultResponse() throws InterruptedException {
-        int serverRpcPort = RandomUtils.nextInt(1000, 9999);
         GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
         MockEnvironment mockEnvironment = new MockEnvironment();
-        mockEnvironment.withProperty("spring.application.name", "test");
+        int rpcPort = RandomUtils.nextInt(2000, 9999);
+        int serverPort = RandomUtils.nextInt(2000, 9999);
+        mockEnvironment
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(rpcPort))
+                .withProperty("server.port", String.valueOf(serverPort));
         genericApplicationContext.setEnvironment(mockEnvironment);
         genericApplicationContext.refresh();
+        setBeansToSpringContext(genericApplicationContext);
         genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(DogInterface.class.getName(), new MyDog());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(Register.class.getName(), new ZkRegister());
-        AntrpcContext serverAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        serverAntrpcContext.setRpcRequestBeanInvoker(
-                new RpcRequestBeanInvoker(genericApplicationContext.getBeanFactory()));
+        AntrpcContext serverAntrpcContext = new AntrpcContext(new Configuration());
         Configuration configuration = (Configuration) serverAntrpcContext.getConfiguration();
         configuration.setEnvironment(mockEnvironment);
-        configuration.setPort(serverRpcPort);
+        configuration.setPort(serverPort);
         configuration.setZkIps("localhost:2181");
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IAntrpcContext.class.getName(), serverAntrpcContext);
-        serverAntrpcContext.init();
-        serverAntrpcContext.startServer();
+        /*genericApplicationContext
+        .getBeanFactory()
+        .registerSingleton(IAntrpcContext.class.getName(), serverAntrpcContext);*/
+        serverAntrpcContext.init(genericApplicationContext);
         Register register = genericApplicationContext.getBean(Register.class);
         ZkRegister zkRegister = (ZkRegister) register;
-        zkRegister.setApplicationContext(genericApplicationContext);
         zkRegister.postProcessBeforeInitialization(
                 genericApplicationContext.getBean(DogInterface.class),
                 DogInterface.class.getName());
 
         // 无频率控制
-        AntrpcContext clientAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        clientAntrpcContext.init();
-        NodeHostEntity nodeHostEntity = getNodeHostEntity(serverRpcPort);
+        GenericApplicationContext clientApplicationContext = new GenericApplicationContext();
+        MockEnvironment clientEnvironment = new MockEnvironment();
+        int clientRpcPort = RandomUtils.nextInt(2000, 9999);
+        int clientServerPort = RandomUtils.nextInt(2000, 9999);
+        clientEnvironment
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(clientRpcPort))
+                .withProperty("server.port", String.valueOf(clientServerPort));
+        clientApplicationContext.setEnvironment(clientEnvironment);
+        clientApplicationContext.refresh();
+        setBeansToSpringContext(clientApplicationContext);
+        AntrpcContext clientAntrpcContext = new AntrpcContext(new Configuration());
+        Configuration clientConfiguration = (Configuration) clientAntrpcContext.getConfiguration();
+        clientConfiguration.setPort(rpcPort);
+        clientConfiguration.setEnvironment(clientEnvironment);
+        clientAntrpcContext.init(clientApplicationContext);
+        NodeHostEntity nodeHostEntity = getNodeHostEntity(serverPort);
         clientAntrpcContext
                 .getNodeHostContainer()
                 .add(DogInterface.class.getName(), nodeHostEntity);
@@ -83,18 +81,24 @@ public class CglibMethodInterceptorTest {
         // 有频率控制
         GenericApplicationContext rateLimitingApplicationContext = new GenericApplicationContext();
         MockEnvironment rateLimitingEnvironment = new MockEnvironment();
+        int rateRpcPort = RandomUtils.nextInt(2000, 9999);
+        int rateServerPort = RandomUtils.nextInt(2000, 9999);
+        rateLimitingEnvironment
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(rateRpcPort))
+                .withProperty("server.port", String.valueOf(rateServerPort));
         rateLimitingApplicationContext.setEnvironment(rateLimitingEnvironment);
         rateLimitingApplicationContext.refresh();
-        AntrpcContext rateLimitingAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        rateLimitingAntrpcContext.init();
+        setBeansToSpringContext(rateLimitingApplicationContext);
+        AntrpcContext rateLimitingAntrpcContext = new AntrpcContext(new Configuration());
+        Configuration rateConfiguration =
+                (Configuration) rateLimitingAntrpcContext.getConfiguration();
+        rateConfiguration.setPort(rateRpcPort);
+        rateConfiguration.setEnvironment(rateLimitingEnvironment);
+        rateLimitingAntrpcContext.init(rateLimitingApplicationContext);
         rateLimitingAntrpcContext
                 .getNodeHostContainer()
-                .add(DogInterface.class.getName(), getNodeHostEntity(serverRpcPort));
+                .add(DogInterface.class.getName(), getNodeHostEntity(serverPort));
         Object rateLimitingBean =
                 rateLimitingAntrpcContext.getBeanContainer().getOrCreateBean(DogInterface.class);
         Assert.assertTrue(rateLimitingBean instanceof DogInterface);
@@ -114,33 +118,35 @@ public class CglibMethodInterceptorTest {
         // 有频率控制与默认实现
         GenericApplicationContext defaultRespApplicationContext = new GenericApplicationContext();
         MockEnvironment defaultRespEnv = new MockEnvironment();
+        int defaultRespRpcPort = RandomUtils.nextInt(2000, 9999);
+        int defaultRespServerPort = RandomUtils.nextInt(2000, 9999);
+        defaultRespEnv
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(defaultRespRpcPort))
+                .withProperty("server.port", String.valueOf(defaultRespServerPort));
         defaultRespApplicationContext.setEnvironment(defaultRespEnv);
         defaultRespApplicationContext.refresh();
-        defaultRespApplicationContext
-                .getBeanFactory()
-                .registerSingleton(OnFailProcessor.class.getName(), new OnFailProcessor());
+        setBeansToSpringContext(defaultRespApplicationContext);
         defaultRespApplicationContext
                 .getBeanFactory()
                 .registerSingleton(DogInterface.class.getName(), new DefaultMyDog());
-        AntrpcContext defaultRespAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        defaultRespApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IAntrpcContext.class.getName(), defaultRespAntrpcContext);
-        defaultRespAntrpcContext.init();
+        AntrpcContext defaultRespAntrpcContext = new AntrpcContext(new Configuration());
+        Configuration defaultRespConfiguration =
+                (Configuration) defaultRespAntrpcContext.getConfiguration();
+        defaultRespConfiguration.setEnvironment(defaultRespEnv);
+        defaultRespConfiguration.setPort(defaultRespRpcPort);
+        /*defaultRespApplicationContext
+        .getBeanFactory()
+        .registerSingleton(IAntrpcContext.class.getName(), defaultRespAntrpcContext);*/
         OnFailProcessor onFailProcessor =
                 defaultRespApplicationContext.getBean(OnFailProcessor.class);
-        onFailProcessor.setApplicationContext(defaultRespApplicationContext);
         onFailProcessor.postProcessBeforeInitialization(
                 defaultRespApplicationContext.getBean(DogInterface.class.getName()),
                 DogInterface.class.getName());
+        defaultRespAntrpcContext.init(defaultRespApplicationContext);
         defaultRespAntrpcContext
                 .getNodeHostContainer()
-                .add(DogInterface.class.getName(), getNodeHostEntity(serverRpcPort));
+                .add(DogInterface.class.getName(), getNodeHostEntity(serverPort));
         Object defaultRespBean =
                 defaultRespAntrpcContext.getBeanContainer().getOrCreateBean(DogInterface.class);
         Assert.assertTrue(defaultRespBean instanceof DogInterface);
@@ -170,15 +176,22 @@ public class CglibMethodInterceptorTest {
 
     @Test
     public void testCatInterfaceToStringMethodIntercept() throws Exception {
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
+        MockEnvironment environment = new MockEnvironment();
+        int rpcPort = RandomUtils.nextInt(2000, 9999);
+        int serverPort = RandomUtils.nextInt(2000, 9999);
+        environment
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(rpcPort))
+                .withProperty("server.port", String.valueOf(serverPort));
+        genericApplicationContext.setEnvironment(environment);
+        AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
+        configuration.setEnvironment(environment);
         configuration.setZkIps("localhost:2181");
-        antrpcContext.init();
+        genericApplicationContext.refresh();
+        setBeansToSpringContext(genericApplicationContext);
+        antrpcContext.init(genericApplicationContext);
         Object bean = antrpcContext.getBeanContainer().getOrCreateBean(CatInterface.class);
         Assert.assertTrue(bean.toString().contains("CatInterface"));
         Assert.assertTrue(bean.toString().contains("EnhancerByCGLIB"));
@@ -186,37 +199,39 @@ public class CglibMethodInterceptorTest {
 
     @Test
     public void testCatInterfaceGetNameMethodIntercept() throws Exception {
-        int serverPort = RandomUtils.nextInt(5000, 9000);
         GenericApplicationContext applicationContext = new GenericApplicationContext();
         MockEnvironment environment = new MockEnvironment();
+        int rpcPort = RandomUtils.nextInt(2000, 9999);
+        int serverPort = RandomUtils.nextInt(2000, 9999);
+        environment
+                .withProperty("spring.application.name", "test")
+                .withProperty("antrpc.port", String.valueOf(rpcPort))
+                .withProperty("server.port", String.valueOf(serverPort));
         applicationContext.setEnvironment(environment);
         ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
         applicationContext.refresh();
         beanFactory.registerSingleton(CatInterface.class.getName(), new MyCat());
-        AntrpcContext serverAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        AntrpcContext serverAntrpcContext = new AntrpcContext(new Configuration());
         Configuration serverConfiguration = (Configuration) serverAntrpcContext.getConfiguration();
         serverConfiguration.setZkIps("localhost:2181");
         serverConfiguration.setPort(serverPort);
-        serverAntrpcContext.init();
-        serverAntrpcContext.startServer();
-        serverAntrpcContext.setRpcRequestBeanInvoker(new RpcRequestBeanInvoker(beanFactory));
+        serverConfiguration.setEnvironment(environment);
+        setBeansToSpringContext(applicationContext);
+        serverAntrpcContext.init(applicationContext);
 
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        GenericApplicationContext clientApplicationContext = new GenericApplicationContext();
+        MockEnvironment clientEnvironment = new MockEnvironment();
+        clientEnvironment.withProperty("spring.application.name", "test");
+        clientApplicationContext.setEnvironment(clientEnvironment);
+        AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setZkIps("localhost:2181");
         configuration.setStartServer(false);
         configuration.setRpcClientsConfig(new RpcClientsConfig());
-        antrpcContext.init();
+        configuration.setEnvironment(clientEnvironment);
+        clientApplicationContext.refresh();
+        setBeansToSpringContext(clientApplicationContext);
+        antrpcContext.init(clientApplicationContext);
         NodeHostEntity nodeHostEntity = new NodeHostEntity();
         nodeHostEntity.setIp("localhost");
         nodeHostEntity.setPort(serverPort);
@@ -231,6 +246,19 @@ public class CglibMethodInterceptorTest {
         CatInterface catInterface = (CatInterface) bean;
         Assert.assertEquals(catInterface.getName(), "MaoMao");
         Assert.assertEquals(catInterface.getType(), "MyCat");
+    }
+
+    private void setBeansToSpringContext(GenericApplicationContext applicationContext) {
+        applicationContext
+                .getBeanFactory()
+                .registerSingleton(Register.class.getName(), new ZkRegister());
+        applicationContext
+                .getBeanFactory()
+                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
+        applicationContext
+                .getBeanFactory()
+                .registerSingleton(
+                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
     }
 
     interface AnimalInterface {

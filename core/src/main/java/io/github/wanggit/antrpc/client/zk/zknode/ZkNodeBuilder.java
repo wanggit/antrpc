@@ -12,8 +12,8 @@ import org.apache.zookeeper.data.Stat;
 @Slf4j
 public class ZkNodeBuilder implements IZkNodeBuilder {
 
-    private CuratorFramework curator;
-    private INodeHostContainer nodeHostContainer;
+    private final CuratorFramework curator;
+    private final INodeHostContainer nodeHostContainer;
 
     public ZkNodeBuilder(CuratorFramework curator, INodeHostContainer nodeHostContainer) {
         this.curator = curator;

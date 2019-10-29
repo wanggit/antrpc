@@ -9,7 +9,7 @@ import io.github.wanggit.antrpc.commons.bean.IdGenHelper;
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
 import io.github.wanggit.antrpc.commons.bean.SerialNumberThreadLocal;
-import io.github.wanggit.antrpc.commons.codec.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.metrics.AbstractCircuitBreakerMetricsSender;
 import io.github.wanggit.antrpc.commons.utils.MonitorUtil;
@@ -21,10 +21,13 @@ public class MonitorMetricsSender extends AbstractCircuitBreakerMetricsSender {
     private MonitorUtil monitorUtil;
     private String appName;
     private IRpcClients rpcClients;
+    private ISerializerHolder serializerHolder;
 
-    public MonitorMetricsSender(String appName, IRpcClients rpcClients) {
+    public MonitorMetricsSender(
+            String appName, IRpcClients rpcClients, ISerializerHolder serializerHolder) {
         this.appName = appName;
         this.rpcClients = rpcClients;
+        this.serializerHolder = serializerHolder;
     }
 
     @Override
@@ -58,7 +61,7 @@ public class MonitorMetricsSender extends AbstractCircuitBreakerMetricsSender {
         RpcProtocol rpcProtocol = new RpcProtocol();
         rpcProtocol.setCmdId(IdGenHelper.getInstance().getId());
         rpcProtocol.setType(ConstantValues.BIZ_TYPE);
-        rpcProtocol.setData(KryoSerializer.getInstance().serialize(requestBean));
+        rpcProtocol.setData(serializerHolder.getSerializer().serialize(requestBean));
         rpcClient.oneway(rpcProtocol);
     }
 

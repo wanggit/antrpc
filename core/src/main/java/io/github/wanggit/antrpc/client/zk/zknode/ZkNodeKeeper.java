@@ -1,16 +1,14 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
-import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.zk.IZkClient;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.zookeeper.data.Stat;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,15 +16,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Cleans up expired nodes in zookeeper */
 @Slf4j
-public final class ZkNodeKeeper implements Runnable, ApplicationContextAware {
+public final class ZkNodeKeeper implements IZkNodeKeeper, Runnable {
 
     private final ScheduledExecutorService executorService =
             Executors.newSingleThreadScheduledExecutor();
     private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
-    private CuratorFramework curator;
-    private IAntrpcContext antrpcContext;
+    private final CuratorFramework curator;
+    private final IZkNodeBuilder zkNodeBuilder;
 
-    public ZkNodeKeeper() {
+    public ZkNodeKeeper(IZkClient zkClient, IZkNodeBuilder zkNodeBuilder) {
+        this.curator = zkClient.getCurator();
+        this.zkNodeBuilder = zkNodeBuilder;
         init();
     }
 
@@ -37,14 +37,14 @@ public final class ZkNodeKeeper implements Runnable, ApplicationContextAware {
     }
 
     @Override
-    public void run() {
+    public void keep() {
         String root = "/" + ConstantValues.ZK_ROOT_NODE_NAME;
         List<String> paths = childrenNode(root);
         if (null != paths && !paths.isEmpty()) {
             for (int i = 0; i < paths.size(); i++) {
                 String subPath = "/" + ConstantValues.ZK_ROOT_NODE_NAME + "/" + paths.get(i);
                 ZkNodeType.Type type = ZkNodeType.getType(subPath);
-                if (type.equals(ZkNodeType.Type.IP)) {
+                if (Objects.equals(type, ZkNodeType.Type.IP)) {
                     List<String> subPaths = childrenNode(subPath);
                     if (null == subPaths || subPaths.isEmpty()) {
                         if (log.isInfoEnabled()) {
@@ -70,11 +70,8 @@ public final class ZkNodeKeeper implements Runnable, ApplicationContextAware {
                                         ChildData childData =
                                                 new ChildData(path, new Stat(), bytes);
                                         ZkNode zkNode =
-                                                antrpcContext
-                                                        .getZkNodeBuilder()
-                                                        .build(
-                                                                ZkNodeType.Type.INTERFACE,
-                                                                childData);
+                                                zkNodeBuilder.build(
+                                                        ZkNodeType.Type.INTERFACE, childData);
                                         zkNode.refresh(Node.OpType.UPDATE);
                                     } catch (Exception e) {
                                         if (log.isWarnEnabled()) {
@@ -93,9 +90,8 @@ public final class ZkNodeKeeper implements Runnable, ApplicationContextAware {
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        antrpcContext = applicationContext.getBean(IAntrpcContext.class);
-        this.curator = antrpcContext.getZkClient().getCurator();
+    public void run() {
+        keep();
     }
 
     private List<String> childrenNode(String path) {

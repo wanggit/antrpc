@@ -9,7 +9,7 @@ public abstract class ZkNode<T> implements Node<T> {
     private final Stat stat;
     private final byte[] data;
 
-    public ZkNode(INodeHostContainer nodeHostContainer, String path, Stat stat, byte[] data) {
+    ZkNode(INodeHostContainer nodeHostContainer, String path, Stat stat, byte[] data) {
         this.nodeHostContainer = nodeHostContainer;
         this.path = path;
         this.stat = stat;

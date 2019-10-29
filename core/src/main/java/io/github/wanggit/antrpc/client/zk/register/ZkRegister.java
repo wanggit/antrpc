@@ -1,10 +1,10 @@
 package io.github.wanggit.antrpc.client.zk.register;
 
 import com.alibaba.fastjson.JSONObject;
-import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeBuilder;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
+import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.constants.Constants;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
@@ -16,31 +16,28 @@ import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Register all services identified by @RpcService as RPC services */
 @Slf4j
-public class ZkRegister implements Register, BeanPostProcessor, ApplicationContextAware {
+public class ZkRegister implements Register, BeanPostProcessor {
 
-    private Integer rpcPort;
-    private IAntrpcContext antrpcContext;
-    private IZkNodeBuilder zkNodeBuilder;
-    private IZkRegisterHolder zkRegisterHolder;
+    private final List<RegisterBean> registerBeans = new ArrayList<>();
 
     /** */
     @Override
-    public void register(RegisterBean registerBean) {
+    public void register(RegisterBean registerBean, IZkNodeBuilder zkNodeBuilder) {
         String zkFullpath = registerBean.getZookeeperFullPath();
         byte[] nodeData = registerBean.getNodeData();
         zkNodeBuilder.remoteCreateZkNode(zkFullpath, nodeData, CreateMode.EPHEMERAL);
     }
 
+    // 1
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName)
             throws BeansException {
@@ -49,7 +46,7 @@ public class ZkRegister implements Register, BeanPostProcessor, ApplicationConte
         if (null != rpcService) {
             String className = beanClass.getName();
             List<Class<?>> allInterfaces = ClassUtils.getAllInterfaces(beanClass);
-            if (null == allInterfaces || allInterfaces.isEmpty()) {
+            if (allInterfaces.isEmpty()) {
                 throw new BeanCreationException(
                         "The @"
                                 + RpcService.class.getSimpleName()
@@ -73,23 +70,26 @@ public class ZkRegister implements Register, BeanPostProcessor, ApplicationConte
                         RegisterBeanHelper.getRegisterBeanMethod(method);
                 registerBean.addMethod(registerBeanMethod);
             }
-            registerBean.setPort(rpcPort);
-            zkRegisterHolder.add(registerBean);
-            register(registerBean);
+            registerBeans.add(registerBean);
         }
         return bean;
     }
 
+    // 2
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName)
             throws BeansException {
         return bean;
     }
 
-    private void init() throws BeansException {
-        this.zkNodeBuilder = antrpcContext.getZkNodeBuilder();
-        this.zkRegisterHolder = antrpcContext.getZkRegisterHolder();
-        this.rpcPort = antrpcContext.getConfiguration().getPort();
+    // 3
+    @Override
+    public void init(
+            IZkNodeBuilder zkNodeBuilder,
+            IZkRegisterHolder zkRegisterHolder,
+            IConfiguration configuration)
+            throws BeansException {
+        Integer rpcPort = configuration.getPort();
         if (null == rpcPort) {
             if (log.isWarnEnabled()) {
                 log.warn(
@@ -110,23 +110,19 @@ public class ZkRegister implements Register, BeanPostProcessor, ApplicationConte
                         + (null == rpcPort ? "" : ":" + rpcPort);
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();
         ipNodeDataBean.setAppName(
-                ApplicationNameUtil.getApplicationName(
-                        antrpcContext.getConfiguration().getEnvironment()));
+                ApplicationNameUtil.getApplicationName(configuration.getEnvironment()));
         ipNodeDataBean.setTs(System.currentTimeMillis());
         ipNodeDataBean.setRpcPort(rpcPort);
         ipNodeDataBean.setHttpPort(
-                antrpcContext
-                        .getConfiguration()
-                        .getEnvironment()
-                        .getProperty("server.port", Integer.class));
+                configuration.getEnvironment().getProperty("server.port", Integer.class));
         byte[] nodeData =
                 JSONObject.toJSONString(ipNodeDataBean).getBytes(Charset.forName("UTF-8"));
         zkNodeBuilder.remoteCreateZkNode(fullPath, nodeData, CreateMode.PERSISTENT);
-    }
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.antrpcContext = applicationContext.getBean(IAntrpcContext.class);
-        init();
+        for (RegisterBean registerBean : registerBeans) {
+            registerBean.setPort(rpcPort);
+            zkRegisterHolder.add(registerBean);
+            register(registerBean, zkNodeBuilder);
+        }
     }
 }

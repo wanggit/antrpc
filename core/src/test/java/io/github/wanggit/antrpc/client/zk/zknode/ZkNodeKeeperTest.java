@@ -3,13 +3,10 @@ package io.github.wanggit.antrpc.client.zk.zknode;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
 import io.github.wanggit.antrpc.client.zk.ZkClient;
-import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
@@ -18,9 +15,8 @@ import org.apache.zookeeper.CreateMode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -32,20 +28,26 @@ public class ZkNodeKeeperTest {
 
     @Test
     public void testRun() throws Exception {
+        int rpcPort = RandomUtils.nextInt(1000, 9999);
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
+        MockEnvironment mockEnvironment =
+                new MockEnvironment()
+                        .withProperty("spring.application.name", "test")
+                        .withProperty("antrpc.port", String.valueOf(rpcPort))
+                        .withProperty(
+                                "server.port", String.valueOf(RandomUtils.nextInt(2000, 9999)));
+        genericApplicationContext.setEnvironment(mockEnvironment);
+        genericApplicationContext.refresh();
+        BeansToSpringContextUtil.toSpringContext(genericApplicationContext);
         Configuration configuration = new Configuration();
         configuration.setPort(RandomUtils.nextInt(1000, 9000));
-        ZkClient zkClient = new ZkClient(configuration);
-        LoadBalancerHelper loadBalancerHelper = new LoadBalancerHelper(configuration);
-        INodeHostContainer nodeHostContainer =
-                new NodeHostContainer(loadBalancerHelper, configuration.getDirectHosts());
-        ZkNodeBuilder zkNodeBuilder = new ZkNodeBuilder(zkClient.getCurator(), nodeHostContainer);
-        IAntrpcContext antrpcContext =
-                new AntrpcContext(
-                        configuration,
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
-        antrpcContext.init();
+        configuration.setEnvironment(mockEnvironment);
+        IAntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.init(genericApplicationContext);
+
+        ZkClient zkClient = (ZkClient) antrpcContext.getZkClient();
+        ZkNodeBuilder zkNodeBuilder = (ZkNodeBuilder) antrpcContext.getZkNodeBuilder();
+
         zkNodeBuilder.remoteCreateZkNode(
                 "/" + ConstantValues.ZK_ROOT_NODE_NAME + "/ip_node_will_delete",
                 "data".getBytes(Charset.forName("UTF-8")),
@@ -63,30 +65,7 @@ public class ZkNodeKeeperTest {
         System.out.println(paths);
         Assert.assertTrue(paths.contains("ip_node_will_delete"));
         Assert.assertTrue(paths.contains("127.0.0.1:9909"));
-        ZkNodeKeeper zkNodeKeeper = new ZkNodeKeeper();
-        zkNodeKeeper.setApplicationContext(
-                new AbstractApplicationContext() {
-                    @Override
-                    protected void refreshBeanFactory()
-                            throws BeansException, IllegalStateException {}
-
-                    @Override
-                    protected void closeBeanFactory() {}
-
-                    @Override
-                    public ConfigurableListableBeanFactory getBeanFactory()
-                            throws IllegalStateException {
-                        return null;
-                    }
-
-                    @Override
-                    public <T> T getBean(Class<T> requiredType) throws BeansException {
-                        if (IAntrpcContext.class.getName().equals(requiredType.getName())) {
-                            return (T) antrpcContext;
-                        }
-                        return null;
-                    }
-                });
+        IZkNodeKeeper zkNodeKeeper = antrpcContext.getZkNodeKeeper();
         System.out.println(
                 "Wait 4 minutes to make sure ZkNodeCleaner has cleaned up at least once.");
         WaitUtil.wait(240, 10);

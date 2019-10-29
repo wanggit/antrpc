@@ -6,6 +6,9 @@ import org.springframework.core.env.Environment;
 import java.util.Map;
 
 public interface IConfiguration {
+
+    SerializeConfig getSerializeConfig();
+
     CodecConfig getCodecConfig();
 
     RpcClientsConfig getRpcClientsConfig();

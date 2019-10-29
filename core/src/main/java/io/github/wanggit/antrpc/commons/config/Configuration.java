@@ -60,8 +60,20 @@ public class Configuration implements IConfiguration {
     /** Codec Config */
     private CodecConfig codecConfig;
 
+    /** Serializer Config */
+    private SerializeConfig serializeConfig;
+
     /** Spring Environment */
     private Environment environment;
+
+    @Override
+    public SerializeConfig getSerializeConfig() {
+        return null == serializeConfig ? new SerializeConfig() : serializeConfig;
+    }
+
+    public void setSerializeConfig(SerializeConfig serializeConfig) {
+        this.serializeConfig = serializeConfig;
+    }
 
     @Override
     public CodecConfig getCodecConfig() {

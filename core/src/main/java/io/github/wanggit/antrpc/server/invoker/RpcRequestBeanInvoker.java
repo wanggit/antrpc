@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
 
-    private BeanFactory springBeanFactory;
+    private final BeanFactory springBeanFactory;
 
     public RpcRequestBeanInvoker(BeanFactory beanFactory) {
         this.springBeanFactory = beanFactory;

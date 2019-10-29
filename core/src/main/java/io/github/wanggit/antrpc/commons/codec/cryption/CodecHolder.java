@@ -4,7 +4,7 @@ import io.github.wanggit.antrpc.commons.config.CodecConfig;
 
 public class CodecHolder implements ICodecHolder {
 
-    private ICodec cache = null;
+    private final ICodec cache;
 
     public CodecHolder(CodecConfig codecConfig)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException {

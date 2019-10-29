@@ -4,15 +4,8 @@ import com.codahale.metrics.MetricRegistry;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.Host;
-import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
 import io.github.wanggit.antrpc.client.monitor.MonitorMetricsSender;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.BeanContainer;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
-import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.zknode.DirectNodeHostEntity;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
-import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
@@ -21,13 +14,13 @@ import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.metrics.IMetricsSender;
 import io.github.wanggit.antrpc.commons.metrics.JvmMetrics;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
-import io.github.wanggit.antrpc.server.invoker.RpcRequestBeanInvoker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.event.*;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
+import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -65,71 +58,35 @@ public class RpcApplicationListener implements GenericApplicationListener {
 
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
-        if (event instanceof ApplicationEnvironmentPreparedEvent) {
-            onApplicationEnvironmentPreparedEvent((ApplicationEnvironmentPreparedEvent) event);
-        } else if (event instanceof ApplicationStartingEvent) {
+        if (event instanceof ApplicationStartingEvent) {
+            // 1
             onApplicationStartingEvent((ApplicationStartingEvent) event);
-        } else if (event instanceof ApplicationPreparedEvent) {
-            onApplicationPreparedEvent((ApplicationPreparedEvent) event);
+        } else if (event instanceof ApplicationEnvironmentPreparedEvent) {
+            // 2
+            onApplicationEnvironmentPreparedEvent((ApplicationEnvironmentPreparedEvent) event);
         } else if (event instanceof ApplicationContextInitializedEvent) {
+            // 3
             onApplicationContextInitializedEvent((ApplicationContextInitializedEvent) event);
+        } else if (event instanceof ApplicationPreparedEvent) {
+            // 4
+            onApplicationPreparedEvent((ApplicationPreparedEvent) event);
         } else if (event instanceof ContextRefreshedEvent) {
+            // 5
             onContextRefreshedEvent((ContextRefreshedEvent) event);
+        } else if (event instanceof ServletWebServerInitializedEvent) {
+            // 6
+        } else if (event instanceof ApplicationStartedEvent) {
+            // 7
         } else if (event instanceof ApplicationReadyEvent) {
+            // 8
             onApplicationReadyEvent((ApplicationReadyEvent) event);
-        }
-    }
-
-    private void onApplicationReadyEvent(ApplicationReadyEvent event) {
-        IAntrpcContext antrpcContext = event.getApplicationContext().getBean(IAntrpcContext.class);
-        antrpcContext.startServer();
-    }
-
-    private void onContextRefreshedEvent(ContextRefreshedEvent event) {
-        ApplicationContext applicationContext = event.getApplicationContext();
-        Register register = applicationContext.getBean(Register.class);
-        AntrpcContext antrpcContext = (AntrpcContext) context;
-        antrpcContext.setRegister(register);
-        RpcProperties rpcProperties = applicationContext.getBean(RpcProperties.class);
-        MetricsConfig metricsConfig = rpcProperties.getMetricsConfig();
-        if (null != metricsConfig) {
-            ConfigurableListableBeanFactory beanFactory =
-                    ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
-            IMetricsSender metricsSender =
-                    new MonitorMetricsSender(
-                            ApplicationNameUtil.getApplicationName(
-                                    applicationContext.getEnvironment()),
-                            antrpcContext.getRpcClients());
-            beanFactory.registerSingleton(IMetricsSender.class.getName(), metricsSender);
-            JvmMetrics jvmMetrics =
-                    new JvmMetrics(
-                            metricsConfig,
-                            applicationContext.getBean(MetricRegistry.class),
-                            antrpcContext.getConfiguration(),
-                            metricsSender,
-                            antrpcContext.getRpcClients());
-            beanFactory.registerSingleton(JvmMetrics.class.getName(), jvmMetrics);
-            jvmMetrics.init();
-        }
-    }
-
-    private void onApplicationContextInitializedEvent(ApplicationContextInitializedEvent event) {
-        ConfigurableApplicationContext applicationContext = event.getApplicationContext();
-        ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
-        if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
-            beanFactory.registerSingleton(ANTRPC_CONTEXT_BEAN_NAME, context);
         }
     }
 
     private void onApplicationStartingEvent(ApplicationStartingEvent event) {
         if (null == context) {
             IConfiguration configuration = new Configuration();
-            BeanContainer beanContainer = new RpcBeanContainer();
-            ICircuitBreaker circuitBreaker = new CircuitBreaker();
-            IRpcCallLogHolder rpcCallLogHolder = new RpcCallLogHolder();
-            context =
-                    new AntrpcContext(
-                            configuration, beanContainer, circuitBreaker, rpcCallLogHolder);
+            context = new AntrpcContext(configuration);
         }
     }
 
@@ -164,7 +121,48 @@ public class RpcApplicationListener implements GenericApplicationListener {
                 });
         ((Configuration) configuration).setInterfaceBreakerConfigs(interfaceBreakers);
         ((Configuration) configuration).setEnvironment(environment);
-        context.init();
+    }
+
+    private void onApplicationContextInitializedEvent(ApplicationContextInitializedEvent event) {
+        ConfigurableApplicationContext applicationContext = event.getApplicationContext();
+        ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
+        if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
+            beanFactory.registerSingleton(ANTRPC_CONTEXT_BEAN_NAME, context);
+        }
+    }
+
+    private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {}
+
+    private void onContextRefreshedEvent(ContextRefreshedEvent event) {
+        ApplicationContext applicationContext = event.getApplicationContext();
+        AntrpcContext antrpcContext = (AntrpcContext) context;
+        RpcProperties rpcProperties = applicationContext.getBean(RpcProperties.class);
+        MetricsConfig metricsConfig = rpcProperties.getMetricsConfig();
+        if (null != metricsConfig && metricsConfig.isEnable()) {
+            ConfigurableListableBeanFactory beanFactory =
+                    ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
+            IMetricsSender metricsSender =
+                    new MonitorMetricsSender(
+                            ApplicationNameUtil.getApplicationName(
+                                    applicationContext.getEnvironment()),
+                            antrpcContext.getRpcClients(),
+                            antrpcContext.getSerializerHolder());
+            beanFactory.registerSingleton(IMetricsSender.class.getName(), metricsSender);
+            JvmMetrics jvmMetrics =
+                    new JvmMetrics(
+                            metricsConfig,
+                            applicationContext.getBean(MetricRegistry.class),
+                            antrpcContext.getConfiguration(),
+                            metricsSender,
+                            antrpcContext.getRpcClients());
+            beanFactory.registerSingleton(JvmMetrics.class.getName(), jvmMetrics);
+            jvmMetrics.init();
+        }
+    }
+
+    private void onApplicationReadyEvent(ApplicationReadyEvent event) {
+        IAntrpcContext antrpcContext = event.getApplicationContext().getBean(IAntrpcContext.class);
+        antrpcContext.init(event.getApplicationContext());
     }
 
     private Map<String, String> getCircuitBreakerConfigMap(Binder binder) {
@@ -176,13 +174,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
                         ConfigurationPropertyName.of(ConstantValues.ANTRPC_CONFIG_PREFIX),
                         Bindable.of(RpcProperties.class))
                 .orElseGet(RpcProperties::new);
-    }
-
-    private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
-        ConfigurableApplicationContext applicationContext = event.getApplicationContext();
-        ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
-        AntrpcContext antrpcContext = (AntrpcContext) context;
-        antrpcContext.setRpcRequestBeanInvoker(new RpcRequestBeanInvoker(beanFactory));
     }
 
     private void initConfiguration(Configuration configuration, RpcProperties rpcProperties) {
@@ -224,5 +215,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
         configuration.setRpcCallLogHolderConfig(rpcProperties.getRpcCallLogHolderConfig());
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
         configuration.setCodecConfig(rpcProperties.getCodecConfig());
+        configuration.setSerializeConfig(rpcProperties.getSerializeConfig());
     }
 }

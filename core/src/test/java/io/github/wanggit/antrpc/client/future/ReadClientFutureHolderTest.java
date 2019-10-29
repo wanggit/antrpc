@@ -2,7 +2,11 @@ package io.github.wanggit.antrpc.client.future;
 
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
-import io.github.wanggit.antrpc.commons.codec.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
+import io.github.wanggit.antrpc.commons.codec.serialize.SerializerHolder;
+import io.github.wanggit.antrpc.commons.codec.serialize.kryo.KryoSerializer;
+import io.github.wanggit.antrpc.commons.config.Configuration;
+import io.github.wanggit.antrpc.commons.config.SerializeConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -19,7 +23,13 @@ public class ReadClientFutureHolderTest {
 
     @Test
     public void testReadClintFutrueHolder() throws Exception {
-        ReadClientFuture future = ReadClientFutureHolder.createFuture(1);
+        Configuration configuration = new Configuration();
+        SerializeConfig serializeConfig = new SerializeConfig();
+        serializeConfig.setType(KryoSerializer.class.getName());
+        configuration.setSerializeConfig(serializeConfig);
+        ISerializerHolder serializerHolder = new SerializerHolder(configuration);
+        ReadClientFuture future =
+                ReadClientFutureHolder.createFuture(1, serializerHolder.getSerializer());
         RpcResponseBean rpcResponseBean = new RpcResponseBean();
         rpcResponseBean.setResult(RandomStringUtils.randomAlphanumeric(10));
         rpcResponseBean.setId(RandomStringUtils.randomAlphanumeric(10));
@@ -28,7 +38,7 @@ public class ReadClientFutureHolderTest {
         RpcProtocol rpcProtocol = new RpcProtocol();
         rpcProtocol.setCmdId(1);
         rpcProtocol.setType(ConstantValues.BIZ_TYPE);
-        rpcProtocol.setData(KryoSerializer.getInstance().serialize(rpcResponseBean));
+        rpcProtocol.setData(serializerHolder.getSerializer().serialize(rpcResponseBean));
         ReadClientFutureHolder.receive(rpcProtocol);
         RpcResponseBean resultEntity = future.get();
         Assert.assertEquals(resultEntity.getId(), rpcResponseBean.getId());
@@ -36,12 +46,21 @@ public class ReadClientFutureHolderTest {
 
     @Test
     public void testManyReadClintFutrueHolder() throws Exception {
+        Configuration configuration = new Configuration();
+        SerializeConfig serializeConfig = new SerializeConfig();
+        serializeConfig.setType(KryoSerializer.class.getName());
+        configuration.setSerializeConfig(serializeConfig);
+        ISerializerHolder serializerHolder = new SerializerHolder(configuration);
+
         ExecutorService executorService = Executors.newFixedThreadPool(100);
         List<Future<ReadClientFuture>> callFutures = new ArrayList<>(1000);
         for (int i = 0; i < 1000; i++) {
             int idx = i;
             Future<ReadClientFuture> submit =
-                    executorService.submit(() -> ReadClientFutureHolder.createFuture(idx));
+                    executorService.submit(
+                            () ->
+                                    ReadClientFutureHolder.createFuture(
+                                            idx, serializerHolder.getSerializer()));
             callFutures.add(submit);
         }
 
@@ -54,7 +73,7 @@ public class ReadClientFutureHolderTest {
             RpcProtocol rpcProtocol = new RpcProtocol();
             rpcProtocol.setCmdId(i);
             rpcProtocol.setType(ConstantValues.BIZ_TYPE);
-            rpcProtocol.setData(KryoSerializer.getInstance().serialize(rpcResponseBean));
+            rpcProtocol.setData(serializerHolder.getSerializer().serialize(rpcResponseBean));
             ReadClientFutureHolder.receive(rpcProtocol);
         }
 

@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LoadBalancerHelper {
 
-    private ILoadBalancer loadBalancer;
+    private final ILoadBalancer loadBalancer;
 
     public LoadBalancerHelper(IConfiguration configuration) {
         try {

@@ -6,15 +6,19 @@ import io.github.wanggit.antrpc.client.spring.BeanContainer;
 import io.github.wanggit.antrpc.client.spring.IOnFailHolder;
 import io.github.wanggit.antrpc.client.zk.IZkClient;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
+import io.github.wanggit.antrpc.client.zk.listener.Listener;
 import io.github.wanggit.antrpc.client.zk.register.IZkRegisterHolder;
 import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeBuilder;
+import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeKeeper;
 import io.github.wanggit.antrpc.commons.IRpcClients;
 import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
 import io.github.wanggit.antrpc.commons.codec.cryption.ICodecHolder;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
+import org.springframework.context.ConfigurableApplicationContext;
 
 public interface IAntrpcContext {
 
@@ -24,6 +28,10 @@ public interface IAntrpcContext {
      * @return
      */
     boolean isInited();
+
+    IZkNodeKeeper getZkNodeKeeper();
+
+    ISerializerHolder getSerializerHolder();
 
     ICodecHolder getCodecHolder();
 
@@ -72,6 +80,8 @@ public interface IAntrpcContext {
 
     Register getRegister();
 
+    Listener getListener();
+
     LoadBalancerHelper getLoadBalancerHelper();
 
     INodeHostContainer getNodeHostContainer();
@@ -80,8 +90,10 @@ public interface IAntrpcContext {
 
     IRpcRequestBeanInvoker getRpcRequestBeanInvoker();
 
-    /** 初始化, 再设置完 Configuration 之后再进行初始化 */
-    void init();
-
-    void startServer();
+    /**
+     * 初始化, 再设置完 Configuration 之后再进行初始化
+     *
+     * @param applicationContext
+     */
+    void init(ConfigurableApplicationContext applicationContext);
 }

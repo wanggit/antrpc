@@ -2,19 +2,20 @@ package io.github.wanggit.antrpc.client;
 
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
-import io.github.wanggit.antrpc.client.spring.RpcBeanContainer;
-import io.github.wanggit.antrpc.client.zk.listener.ZkListener;
+import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
+import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.codec.cryption.AESCodec;
 import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
-import io.github.wanggit.antrpc.server.invoker.RpcRequestBeanInvoker;
+import io.github.wanggit.antrpc.commons.test.ZkNodeTestUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
@@ -27,7 +28,7 @@ import java.util.*;
 public class RpcClientsTest {
 
     @Test
-    public void testCodecAndZipDoRpc() throws InterruptedException {
+    public void testCodecAndZipDoRpc() throws Exception {
         String key = UUID.randomUUID().toString();
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
@@ -73,10 +74,12 @@ public class RpcClientsTest {
         }
         String result = testInterface.sendMoreMessage(builder.toString());
         Assert.assertEquals(result, builder.toString());
+        ZkNodeTestUtil.afterClear(rpcPort);
+        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     @Test
-    public void testCodecDoRpc() throws InterruptedException {
+    public void testCodecDoRpc() throws Exception {
         String key = UUID.randomUUID().toString();
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
@@ -118,10 +121,12 @@ public class RpcClientsTest {
         TestInterface testInterface = (TestInterface) bean;
         String result = testInterface.doMethod();
         Assert.assertEquals(result, "Hello Test");
+        ZkNodeTestUtil.afterClear(rpcPort);
+        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     @Test
-    public void testDoRpc() throws InterruptedException {
+    public void testDoRpc() throws Exception {
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
@@ -152,11 +157,14 @@ public class RpcClientsTest {
                             @Override
                             public void initConfiguration(Configuration configuration) {}
                         });
+        // WaitUtil.wait(5, 1);
         Object bean = clientAntrpcContext.getBeanContainer().getOrCreateBean(TestInterface.class);
         Assert.assertTrue(bean instanceof TestInterface);
         TestInterface testInterface = (TestInterface) bean;
         String result = testInterface.doMethod();
         Assert.assertEquals(result, "Hello Test");
+        ZkNodeTestUtil.afterClear(rpcPort);
+        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     private CodecConfig getCodecConfig(String key) {
@@ -200,24 +208,29 @@ public class RpcClientsTest {
                     .getBeanFactory()
                     .registerSingleton(entry.getKey(), entry.getValue());
         }
-        AntrpcContext clientAntrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        Configuration configuration = new Configuration();
+        configuration.setPort(rpcPort);
+        AntrpcContext clientAntrpcContext = new AntrpcContext(configuration);
         configurationCallback.initConfiguration(
                 (Configuration) clientAntrpcContext.getConfiguration());
         clientApplicationContext
                 .getBeanFactory()
                 .registerSingleton(AntrpcContext.class.getName(), clientAntrpcContext);
-        clientAntrpcContext.init();
+        clientApplicationContext
+                .getBeanFactory()
+                .registerSingleton(Register.class.getName(), new ZkRegister());
+        clientApplicationContext
+                .getBeanFactory()
+                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
+        clientApplicationContext
+                .getBeanFactory()
+                .registerSingleton(
+                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
         Configuration clientConfiguration = (Configuration) clientAntrpcContext.getConfiguration();
-        ZkListener zkListener = new ZkListener();
-        zkListener.setApplicationContext(clientApplicationContext);
         WaitUtil.wait(3, 1);
         clientConfiguration.setStartServer(false);
         clientConfiguration.setEnvironment(clientEnv);
+        clientAntrpcContext.init(clientApplicationContext);
         return clientAntrpcContext;
     }
 
@@ -245,32 +258,30 @@ public class RpcClientsTest {
             }
         }
 
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        new RpcBeanContainer(),
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         configurationCallback.initConfiguration((Configuration) antrpcContext.getConfiguration());
         genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(AntrpcContext.class.getName(), antrpcContext);
-        antrpcContext.init();
+        genericApplicationContext
+                .getBeanFactory()
+                .registerSingleton(Register.class.getName(), new ZkRegister());
+        genericApplicationContext
+                .getBeanFactory()
+                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
+        genericApplicationContext
+                .getBeanFactory()
+                .registerSingleton(
+                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
+
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setPort(rpcPort);
         configuration.setStartServer(true);
         configuration.setEnvironment(environment);
-        configuration.setStartServer(true);
-        ZkRegister register = new ZkRegister();
-        register.setApplicationContext(genericApplicationContext);
-        antrpcContext.setRegister(register);
-        RpcRequestBeanInvoker rpcRequestBeanInvoker =
-                new RpcRequestBeanInvoker(genericApplicationContext.getBeanFactory());
-        antrpcContext.setRpcRequestBeanInvoker(rpcRequestBeanInvoker);
+        antrpcContext.init(genericApplicationContext);
         for (RegisterBean registerBean : registerBeans) {
-            antrpcContext.getRegister().register(registerBean);
+            antrpcContext.getRegister().register(registerBean, antrpcContext.getZkNodeBuilder());
         }
-        antrpcContext.startServer();
     }
 
     @RpcService

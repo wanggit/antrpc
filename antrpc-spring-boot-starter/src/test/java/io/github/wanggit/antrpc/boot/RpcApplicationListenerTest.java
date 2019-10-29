@@ -4,11 +4,11 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.listener.ZkListener;
 import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
-import io.github.wanggit.antrpc.client.zk.zknode.ZkNodeKeeper;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.config.RpcCallLogHolderConfig;
@@ -22,7 +22,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.*;
+import org.springframework.boot.context.event.ApplicationContextInitializedEvent;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartingEvent;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
@@ -53,9 +56,6 @@ public class RpcApplicationListenerTest {
         Assert.assertTrue(contextObj instanceof IAntrpcContext);
         IAntrpcContext antrpcContext = (IAntrpcContext) contextObj;
         Assert.assertNotNull(antrpcContext.getConfiguration());
-        Assert.assertNotNull(antrpcContext.getBeanContainer());
-        Assert.assertNotNull(antrpcContext.getCircuitBreaker());
-        Assert.assertNotNull(antrpcContext.getRpcCallLogHolder());
 
         // 2 ApplicationEnvironmentPreparedEvent
         MockEnvironment environment = new MockEnvironment();
@@ -114,12 +114,6 @@ public class RpcApplicationListenerTest {
         genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(ZkRegister.class.getName(), new ZkRegister());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(ZkListener.class.getName(), new ZkListener());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(ZkNodeKeeper.class.getName(), new ZkNodeKeeper());
         rpcApplicationListener.onApplicationEvent(applicationContextInitializedEvent);
         IAntrpcContext bean = genericApplicationContext.getBean(IAntrpcContext.class);
         Assert.assertNotNull(bean);
@@ -128,13 +122,6 @@ public class RpcApplicationListenerTest {
         Assert.assertTrue(contextBean instanceof IAntrpcContext);
 
         // 4 ApplicationPreparedEvent
-        ApplicationPreparedEvent applicationPreparedEvent =
-                new ApplicationPreparedEvent(
-                        springApplication, new String[] {}, genericApplicationContext);
-        rpcApplicationListener.onApplicationEvent(applicationPreparedEvent);
-        IAntrpcContext context = genericApplicationContext.getBean(IAntrpcContext.class);
-        Assert.assertNotNull(context);
-        Assert.assertNotNull(context.getRpcRequestBeanInvoker());
 
         // 5 ContextRefreshedEvent
         ContextRefreshedEvent contextRefreshedEvent =
@@ -157,9 +144,18 @@ public class RpcApplicationListenerTest {
             JvmMetrics jvmMetrics = genericApplicationContext.getBean(JvmMetrics.class);
             Assert.assertNotNull(jvmMetrics);
         }
-        Assert.assertNotNull(antrpcContext.getRpcRequestBeanInvoker());
-        Assert.assertNotNull(antrpcContext.getCircuitBreaker());
-        Assert.assertNotNull(antrpcContext.getBeanContainer());
+
+        // 8 ApplicationReadyEvent
+        ApplicationReadyEvent applicationReadyEvent =
+                new ApplicationReadyEvent(
+                        springApplication, new String[] {}, genericApplicationContext);
+        genericApplicationContext
+                .getBeanFactory()
+                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
+        rpcApplicationListener.onApplicationEvent(applicationReadyEvent);
+        AntrpcContext antrpcContextImpl = (AntrpcContext) antrpcContext;
+        IServer server = antrpcContextImpl.getServer();
+        Assert.assertNotNull(server);
         Assert.assertNotNull(antrpcContext.getLoadBalancerHelper());
         Assert.assertNotNull(antrpcContext.getNodeHostContainer());
         Assert.assertNotNull(antrpcContext.getConfiguration());
@@ -168,15 +164,12 @@ public class RpcApplicationListenerTest {
         Assert.assertNotNull(antrpcContext.getZkClient());
         Assert.assertNotNull(antrpcContext.getZkNodeBuilder());
         Assert.assertNotNull(antrpcContext.getZkRegisterHolder());
-
-        // 8 ApplicationReadyEvent
-        ApplicationReadyEvent applicationReadyEvent =
-                new ApplicationReadyEvent(
-                        springApplication, new String[] {}, genericApplicationContext);
-        rpcApplicationListener.onApplicationEvent(applicationReadyEvent);
-        AntrpcContext antrpcContextImpl = (AntrpcContext) antrpcContext;
-        IServer server = antrpcContextImpl.getServer();
-        Assert.assertNotNull(server);
+        Assert.assertNotNull(antrpcContext.getBeanContainer());
+        Assert.assertNotNull(antrpcContext.getCircuitBreaker());
+        Assert.assertNotNull(antrpcContext.getRpcCallLogHolder());
+        Assert.assertNotNull(antrpcContext.getRpcRequestBeanInvoker());
+        Assert.assertNotNull(antrpcContext.getCircuitBreaker());
+        Assert.assertNotNull(antrpcContext.getBeanContainer());
         Assert.assertTrue(server.isActive());
     }
 

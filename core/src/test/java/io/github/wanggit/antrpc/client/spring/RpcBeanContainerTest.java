@@ -1,14 +1,15 @@
 package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.monitor.RpcCallLogHolder;
+import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.client.monitor.RpcMonitorApi;
-import io.github.wanggit.antrpc.commons.breaker.CircuitBreaker;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,19 +20,30 @@ public class RpcBeanContainerTest {
 
     @Test
     public void testGetOrCreateBean() throws Exception {
-        BeanContainer beanContainer = new RpcBeanContainer();
-        AntrpcContext antrpcContext =
-                new AntrpcContext(
-                        new Configuration(),
-                        beanContainer,
-                        new CircuitBreaker(),
-                        new RpcCallLogHolder());
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
+        MockEnvironment mockEnvironment =
+                new MockEnvironment()
+                        .withProperty("spring.application.name", "test")
+                        .withProperty(
+                                "server.port", String.valueOf(RandomUtils.nextInt(2000, 9999)))
+                        .withProperty(
+                                "antrpc.port", String.valueOf(RandomUtils.nextInt(2000, 9999)));
+        genericApplicationContext.setEnvironment(mockEnvironment);
+        genericApplicationContext.refresh();
+        BeansToSpringContextUtil.toSpringContext(genericApplicationContext);
+        AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setPort(RandomUtils.nextInt(2000, 9000));
-        antrpcContext.init();
+        configuration.setEnvironment(mockEnvironment);
+        antrpcContext.init(genericApplicationContext);
         List<Object> objects = new ArrayList<>(1500);
         for (int i = 0; i < 1000; i++) {
-            new Thread(() -> objects.add(beanContainer.getOrCreateBean(RpcMonitorApi.class)))
+            new Thread(
+                            () ->
+                                    objects.add(
+                                            antrpcContext
+                                                    .getBeanContainer()
+                                                    .getOrCreateBean(RpcMonitorApi.class)))
                     .start();
         }
         WaitUtil.wait(5, 1);

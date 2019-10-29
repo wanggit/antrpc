@@ -18,13 +18,17 @@ antrpc:
   direct-hosts:
     antrpc.test.api.UserServiceApi: localhost:6060
   metrics-config:
-    enable: true
+    enable: false
     report-interval-seconds: 1
     enable-servlets: true
     enable-antrpc-monitor-reporter: true
-  monitor-host: localhost:6063
   rpc-call-log-holder-config:
     report-argument-values: true
+  serialize-config:
+    type: io.github.wanggit.antrpc.commons.codec.serialize.kryo.KryoSerializer
+    map:
+      max_idle: 20
+      max_total: 100
 
 spring:
   application:

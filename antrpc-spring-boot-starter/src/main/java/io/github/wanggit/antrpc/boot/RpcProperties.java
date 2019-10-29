@@ -34,6 +34,8 @@ public class RpcProperties {
 
     @NestedConfigurationProperty private CodecConfig codecConfig;
 
+    @NestedConfigurationProperty private SerializeConfig serializeConfig;
+
     /** direct rpc host -> ip:port */
     private Map<String, String> directHosts;
 

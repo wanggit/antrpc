@@ -1,6 +1,7 @@
 package io.github.wanggit.antrpc.client.zk.register;
 
-import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.zk.IZkClient;
+import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 
@@ -13,15 +14,19 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ZkRegisterHolder implements IZkRegisterHolder, Runnable {
 
-    private List<RegisterBean> registerBeans = new ArrayList<>();
+    private final List<RegisterBean> registerBeans = new ArrayList<>();
 
-    private IAntrpcContext antrpcContext;
+    private final Register register;
+    private final IZkClient zkClient;
+    private final IZkNodeBuilder zkNodeBuilder;
 
     private final ScheduledExecutorService scheduledExecutorService =
             Executors.newSingleThreadScheduledExecutor();
 
-    public ZkRegisterHolder(IAntrpcContext antrpcContext) {
-        this.antrpcContext = antrpcContext;
+    public ZkRegisterHolder(Register register, IZkNodeBuilder zkNodeBuilder, IZkClient zkClient) {
+        this.register = register;
+        this.zkClient = zkClient;
+        this.zkNodeBuilder = zkNodeBuilder;
         scheduledExecutorService.scheduleAtFixedRate(this, 1, 1, TimeUnit.MINUTES);
     }
 
@@ -33,13 +38,13 @@ public class ZkRegisterHolder implements IZkRegisterHolder, Runnable {
     @Override
     public void allReRegister() {
         for (RegisterBean registerBean : registerBeans) {
-            antrpcContext.getRegister().register(registerBean);
+            register.register(registerBean, zkNodeBuilder);
         }
     }
 
     @Override
     public void run() {
-        CuratorFramework curator = antrpcContext.getZkClient().getCurator();
+        CuratorFramework curator = zkClient.getCurator();
         registerBeans.forEach(
                 it -> {
                     String fullPath = it.getZookeeperFullPath();
@@ -58,7 +63,7 @@ public class ZkRegisterHolder implements IZkRegisterHolder, Runnable {
                                             + fullPath
                                             + " node data and attempted to re-register the node");
                         }
-                        antrpcContext.getRegister().register(it);
+                        register.register(it, zkNodeBuilder);
                     }
                 });
     }
