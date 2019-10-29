@@ -12,3 +12,18 @@ Another Tool for RPC
 9. 使用zk做配置中心（未完成）
 10. 日志消息通过kafka异步发送（未完成）
 11. 兼容avro序列化与反序列化（未完成）
+
+---
+1. 注意```curator```包与```Zookeeper```的兼容性；
+http://curator.apache.org/zk-compatibility.html
+```xml
+<properties>
+    <curator-recipes.version>2.13.0</curator-recipes.version>
+</properties>
+<dependency>
+    <groupId>org.apache.curator</groupId>
+    <artifactId>curator-recipes</artifactId>
+    <version>${curator-recipes.version}</version>
+</dependency>
+```
+经测试兼容zookeeper 3.4.5版本

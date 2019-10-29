@@ -87,18 +87,12 @@
         <cglib.version>3.3.0</cglib.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <fastjson.version>1.2.59</fastjson.version>
-        <curator-recipes.version>4.2.0</curator-recipes.version>
         <commons-compress.version>1.19</commons-compress.version>
         <sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/service/local/staging/deploy/maven2
         </sonatypeOssDistMgmtSnapshotsUrl>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-recipes</artifactId>
-            <version>${curator-recipes.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>

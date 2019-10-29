@@ -15,7 +15,6 @@ import io.github.wanggit.antrpc.commons.codec.cryption.AESCodec;
 import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
-import io.github.wanggit.antrpc.commons.test.ZkNodeTestUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
@@ -74,8 +73,6 @@ public class RpcClientsTest {
         }
         String result = testInterface.sendMoreMessage(builder.toString());
         Assert.assertEquals(result, builder.toString());
-        ZkNodeTestUtil.afterClear(rpcPort);
-        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     @Test
@@ -121,8 +118,6 @@ public class RpcClientsTest {
         TestInterface testInterface = (TestInterface) bean;
         String result = testInterface.doMethod();
         Assert.assertEquals(result, "Hello Test");
-        ZkNodeTestUtil.afterClear(rpcPort);
-        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     @Test
@@ -163,8 +158,6 @@ public class RpcClientsTest {
         TestInterface testInterface = (TestInterface) bean;
         String result = testInterface.doMethod();
         Assert.assertEquals(result, "Hello Test");
-        ZkNodeTestUtil.afterClear(rpcPort);
-        ZkNodeTestUtil.afterClear(clientRpcPort);
     }
 
     private CodecConfig getCodecConfig(String key) {
@@ -227,6 +220,7 @@ public class RpcClientsTest {
                 .registerSingleton(
                         IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
         Configuration clientConfiguration = (Configuration) clientAntrpcContext.getConfiguration();
+
         WaitUtil.wait(3, 1);
         clientConfiguration.setStartServer(false);
         clientConfiguration.setEnvironment(clientEnv);
