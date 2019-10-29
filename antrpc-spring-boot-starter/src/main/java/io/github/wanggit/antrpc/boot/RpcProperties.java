@@ -28,7 +28,7 @@ public class RpcProperties {
 
     @NestedConfigurationProperty private MetricsConfig metricsConfig;
 
-    @NestedConfigurationProperty private RpcCallLogHolderConfig rpcCallLogHolderConfig;
+    @NestedConfigurationProperty private CallLogReporterConfig callLogReporterConfig;
 
     @NestedConfigurationProperty private RpcClientsConfig rpcClientsConfig;
 

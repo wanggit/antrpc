@@ -22,8 +22,6 @@ antrpc:
     report-interval-seconds: 1
     enable-servlets: true
     enable-antrpc-monitor-reporter: true
-  rpc-call-log-holder-config:
-    report-argument-values: true
   serialize-config:
     type: io.github.wanggit.antrpc.commons.codec.serialize.kryo.KryoSerializer
     map:

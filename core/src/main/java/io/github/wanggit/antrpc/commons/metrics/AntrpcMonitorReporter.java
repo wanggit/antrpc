@@ -1,8 +1,8 @@
 package io.github.wanggit.antrpc.commons.metrics;
 
+import com.codahale.metrics.*;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.utils.MonitorUtil;
-import com.codahale.metrics.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
@@ -172,7 +172,6 @@ public class AntrpcMonitorReporter extends ScheduledReporter {
                 disabledMetricAttributes);
         this.monitorUtil = new MonitorUtil(configuration);
         this.metricsSender = metricsSender;
-        this.metricsSender.setMonitorUtil(this.monitorUtil);
     }
 
     @Override

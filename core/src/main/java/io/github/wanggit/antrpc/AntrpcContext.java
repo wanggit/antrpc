@@ -186,6 +186,7 @@ public class AntrpcContext implements IAntrpcContext {
         if (inited.compareAndSet(false, true)) {
             long start = System.currentTimeMillis();
             this.initRpcRequestBeanInvoker(applicationContext);
+            this.initRpcCallLogHolder(applicationContext, configuration);
             this.rateLimiting = new RateLimiting();
             this.onFailHolder = new OnFailHolder();
             this.initOnFailProcessor(applicationContext, onFailHolder);
@@ -201,7 +202,6 @@ public class AntrpcContext implements IAntrpcContext {
             this.initCodecHolder(configuration);
             this.initSerializerHolder(configuration);
             this.rpcClients = new RpcClients(configuration, codecHolder, serializerHolder);
-            this.initRpcCallLogHolder(configuration, rpcClients, serializerHolder);
             this.initRpcBeanContainer(
                     rateLimiting,
                     rpcCallLogHolder,
@@ -341,10 +341,14 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initRpcCallLogHolder(
-            IConfiguration configuration,
-            IRpcClients rpcClients,
-            ISerializerHolder serializerHolder) {
-        rpcCallLogHolder = new RpcCallLogHolder(configuration, rpcClients, serializerHolder);
+            ApplicationContext applicationContext, IConfiguration configuration) {
+        try {
+            rpcCallLogHolder = new RpcCallLogHolder(configuration, applicationContext);
+        } catch (Exception e) {
+            throw new BeanCreationException(
+                    "An exception occurred while initializing " + IRpcCallLogHolder.class.getName(),
+                    e);
+        }
     }
 
     public IServer getServer() {

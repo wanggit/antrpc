@@ -15,6 +15,7 @@ import io.github.wanggit.antrpc.commons.metrics.IMetricsSender;
 import io.github.wanggit.antrpc.commons.metrics.JvmMetrics;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.event.*;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -28,6 +29,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.GenericApplicationListener;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -141,22 +143,27 @@ public class RpcApplicationListener implements GenericApplicationListener {
         if (null != metricsConfig && metricsConfig.isEnable()) {
             ConfigurableListableBeanFactory beanFactory =
                     ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
-            IMetricsSender metricsSender =
-                    new MonitorMetricsSender(
-                            ApplicationNameUtil.getApplicationName(
-                                    applicationContext.getEnvironment()),
-                            antrpcContext.getRpcClients(),
-                            antrpcContext.getSerializerHolder());
-            beanFactory.registerSingleton(IMetricsSender.class.getName(), metricsSender);
-            JvmMetrics jvmMetrics =
-                    new JvmMetrics(
-                            metricsConfig,
-                            applicationContext.getBean(MetricRegistry.class),
-                            antrpcContext.getConfiguration(),
-                            metricsSender,
-                            antrpcContext.getRpcClients());
-            beanFactory.registerSingleton(JvmMetrics.class.getName(), jvmMetrics);
-            jvmMetrics.init();
+            KafkaTemplate kafkaTemplate = tryFoundKafkaTemplate(beanFactory);
+            if (null == kafkaTemplate) {
+                log.warn(
+                        "Application indicator reporting was started, but Kafka configuration was not found. KafkaTemplate object was needed.");
+            } else {
+                IMetricsSender metricsSender =
+                        new MonitorMetricsSender(
+                                ApplicationNameUtil.getApplicationName(
+                                        applicationContext.getEnvironment()),
+                                kafkaTemplate);
+                beanFactory.registerSingleton(IMetricsSender.class.getName(), metricsSender);
+                JvmMetrics jvmMetrics =
+                        new JvmMetrics(
+                                metricsConfig,
+                                applicationContext.getBean(MetricRegistry.class),
+                                antrpcContext.getConfiguration(),
+                                metricsSender,
+                                antrpcContext.getRpcClients());
+                beanFactory.registerSingleton(JvmMetrics.class.getName(), jvmMetrics);
+                jvmMetrics.init();
+            }
         }
     }
 
@@ -212,9 +219,17 @@ public class RpcApplicationListener implements GenericApplicationListener {
         }
         configuration.setStartServer(rpcProperties.isStartServer());
         configuration.setGlobalBreakerConfig(rpcProperties.getCircuitBreakers());
-        configuration.setRpcCallLogHolderConfig(rpcProperties.getRpcCallLogHolderConfig());
+        configuration.setCallLogReporterConfig(rpcProperties.getCallLogReporterConfig());
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
         configuration.setCodecConfig(rpcProperties.getCodecConfig());
         configuration.setSerializeConfig(rpcProperties.getSerializeConfig());
+    }
+
+    private KafkaTemplate tryFoundKafkaTemplate(ConfigurableListableBeanFactory beanFactory) {
+        try {
+            return beanFactory.getBean(KafkaTemplate.class);
+        } catch (NoSuchBeanDefinitionException e) {
+            return null;
+        }
     }
 }

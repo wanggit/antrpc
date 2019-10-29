@@ -2,32 +2,20 @@ package io.github.wanggit.antrpc.client.monitor;
 
 import com.alibaba.fastjson.JSONObject;
 import com.codahale.metrics.*;
-import com.google.common.collect.Lists;
-import io.github.wanggit.antrpc.client.RpcClient;
-import io.github.wanggit.antrpc.commons.IRpcClients;
-import io.github.wanggit.antrpc.commons.bean.IdGenHelper;
-import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
-import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
-import io.github.wanggit.antrpc.commons.bean.SerialNumberThreadLocal;
-import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.metrics.AbstractCircuitBreakerMetricsSender;
-import io.github.wanggit.antrpc.commons.utils.MonitorUtil;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.SortedMap;
 
 public class MonitorMetricsSender extends AbstractCircuitBreakerMetricsSender {
 
-    private MonitorUtil monitorUtil;
     private String appName;
-    private IRpcClients rpcClients;
-    private ISerializerHolder serializerHolder;
+    private KafkaTemplate kafkaTemplate;
 
-    public MonitorMetricsSender(
-            String appName, IRpcClients rpcClients, ISerializerHolder serializerHolder) {
+    public MonitorMetricsSender(String appName, KafkaTemplate kafkaTemplate) {
         this.appName = appName;
-        this.rpcClients = rpcClients;
-        this.serializerHolder = serializerHolder;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
@@ -37,17 +25,6 @@ public class MonitorMetricsSender extends AbstractCircuitBreakerMetricsSender {
             SortedMap<String, Histogram> histograms,
             SortedMap<String, Meter> meters,
             SortedMap<String, Timer> timers) {
-        RpcClient rpcClient = rpcClients.getRpcClient(monitorUtil.getMonitorHost());
-        RpcRequestBean requestBean = new RpcRequestBean();
-        requestBean.setOneway(true);
-        SerialNumberThreadLocal.TraceEntity traceEntity = SerialNumberThreadLocal.get();
-        requestBean.setSerialNumber(traceEntity.getSerialNumber());
-        requestBean.setCaller(traceEntity.getCaller());
-        requestBean.setTs(System.currentTimeMillis());
-        requestBean.setId(IdGenHelper.getInstance().getUUID());
-        requestBean.setFullClassName(RpcMonitorApi.class.getName());
-        requestBean.setMethodName("sendMetrics");
-        requestBean.setArgumentTypes(Lists.newArrayList("java.lang.String"));
         MetricsObjs metricsObjs =
                 new MetricsObjs(
                         appName,
@@ -57,16 +34,7 @@ public class MonitorMetricsSender extends AbstractCircuitBreakerMetricsSender {
                         histograms,
                         meters,
                         timers);
-        requestBean.setArgumentValues(new Object[] {JSONObject.toJSONString(metricsObjs)});
-        RpcProtocol rpcProtocol = new RpcProtocol();
-        rpcProtocol.setCmdId(IdGenHelper.getInstance().getId());
-        rpcProtocol.setType(ConstantValues.BIZ_TYPE);
-        rpcProtocol.setData(serializerHolder.getSerializer().serialize(requestBean));
-        rpcClient.oneway(rpcProtocol);
-    }
-
-    @Override
-    public void setMonitorUtil(MonitorUtil monitorUtil) {
-        this.monitorUtil = monitorUtil;
+        kafkaTemplate.send(
+                ConstantValues.METRICS_KAFKA_TOPIC, JSONObject.toJSONString(metricsObjs));
     }
 }

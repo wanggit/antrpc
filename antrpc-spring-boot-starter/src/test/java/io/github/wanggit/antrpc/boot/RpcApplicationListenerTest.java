@@ -9,9 +9,9 @@ import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
+import io.github.wanggit.antrpc.commons.config.CallLogReporterConfig;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
-import io.github.wanggit.antrpc.commons.config.RpcCallLogHolderConfig;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.metrics.IMetricsSender;
@@ -31,6 +31,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.ReflectionUtils;
 
@@ -82,9 +83,9 @@ public class RpcApplicationListenerTest {
         Assert.assertEquals(globalBreakerConfig.getThreshold(), 10);
         Assert.assertEquals(globalBreakerConfig.getCheckIntervalSeconds(), 5);
 
-        RpcCallLogHolderConfig rpcCallLogHolderConfig = configuration.getRpcCallLogHolderConfig();
-        Assert.assertNotNull(rpcCallLogHolderConfig);
-        Assert.assertTrue(rpcCallLogHolderConfig.isReportArgumentValues());
+        CallLogReporterConfig callLogReporterConfig = configuration.getCallLogReporterConfig();
+        Assert.assertNotNull(callLogReporterConfig);
+        Assert.assertFalse(callLogReporterConfig.isReportArgumentValues());
 
         RpcClientsConfig rpcClientsConfig = configuration.getRpcClientsConfig();
         Assert.assertNotNull(rpcClientsConfig);
@@ -137,8 +138,14 @@ public class RpcApplicationListenerTest {
         Assert.assertNotNull(register);
         RpcProperties rpcProperties = genericApplicationContext.getBean(RpcProperties.class);
         Assert.assertNotNull(rpcProperties);
+        KafkaTemplate kafkaTemplate = null;
+        try {
+            kafkaTemplate = genericApplicationContext.getBean(KafkaTemplate.class);
+        } catch (Exception e) {
+        }
         if (null != rpcProperties.getMetricsConfig()
-                && rpcProperties.getMetricsConfig().isEnable()) {
+                && rpcProperties.getMetricsConfig().isEnable()
+                && null != kafkaTemplate) {
             IMetricsSender metricsSender = genericApplicationContext.getBean(IMetricsSender.class);
             Assert.assertNotNull(metricsSender);
             JvmMetrics jvmMetrics = genericApplicationContext.getBean(JvmMetrics.class);

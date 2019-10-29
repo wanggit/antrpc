@@ -43,7 +43,7 @@ public class Configuration implements IConfiguration {
     private CircuitBreakerConfig globalBreakerConfig;
 
     /** 调用日志记录配置 */
-    private RpcCallLogHolderConfig rpcCallLogHolderConfig;
+    private CallLogReporterConfig callLogReporterConfig;
 
     /** RPC 客户端连接池配置 */
     private RpcClientsConfig rpcClientsConfig;
@@ -94,14 +94,12 @@ public class Configuration implements IConfiguration {
     }
 
     @Override
-    public RpcCallLogHolderConfig getRpcCallLogHolderConfig() {
-        return null == rpcCallLogHolderConfig
-                ? new RpcCallLogHolderConfig()
-                : rpcCallLogHolderConfig;
+    public CallLogReporterConfig getCallLogReporterConfig() {
+        return null == callLogReporterConfig ? new CallLogReporterConfig() : callLogReporterConfig;
     }
 
-    public void setRpcCallLogHolderConfig(RpcCallLogHolderConfig rpcCallLogHolderConfig) {
-        this.rpcCallLogHolderConfig = rpcCallLogHolderConfig;
+    public void setCallLogReporterConfig(CallLogReporterConfig callLogReporterConfig) {
+        this.callLogReporterConfig = callLogReporterConfig;
     }
 
     @Override

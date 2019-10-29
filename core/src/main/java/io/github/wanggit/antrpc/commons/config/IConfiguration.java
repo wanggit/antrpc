@@ -13,7 +13,7 @@ public interface IConfiguration {
 
     RpcClientsConfig getRpcClientsConfig();
 
-    RpcCallLogHolderConfig getRpcCallLogHolderConfig();
+    CallLogReporterConfig getCallLogReporterConfig();
 
     Environment getEnvironment();
 

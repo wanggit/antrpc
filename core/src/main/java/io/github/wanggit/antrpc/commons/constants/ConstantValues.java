@@ -34,4 +34,10 @@ public interface ConstantValues {
 
     /** antrpc 配置有前缀 */
     String ANTRPC_CONFIG_PREFIX = "antrpc";
+
+    /** 默认发送日志的Topic */
+    String CALL_LOG_KAFKA_TOPIC = "antrpc_call_log";
+
+    /** 默认发送监控指标的Topic */
+    String METRICS_KAFKA_TOPIC = "antrpc_metrics";
 }
