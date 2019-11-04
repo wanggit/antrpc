@@ -8,4 +8,11 @@ public class RpcErrorCreator {
         rpcResponseError.setMessage(rpcError.getMessage());
         return rpcResponseError;
     }
+
+    public static RpcResponseError create(String code, String message) {
+        RpcResponseError rpcResponseError = new RpcResponseError();
+        rpcResponseError.setCode(code);
+        rpcResponseError.setMessage(message);
+        return rpcResponseError;
+    }
 }

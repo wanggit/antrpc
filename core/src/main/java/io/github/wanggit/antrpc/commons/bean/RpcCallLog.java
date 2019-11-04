@@ -38,8 +38,4 @@ public class RpcCallLog implements Serializable {
     private String argumentsJson;
 
     private Object[] requestArgs;
-
-    public String getCallLogKey() {
-        return className + "." + methodName + "@" + ip + ":" + port;
-    }
 }

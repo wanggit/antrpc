@@ -2,13 +2,12 @@ package io.github.wanggit.antrpc.server.invoker;
 
 import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
-import io.github.wanggit.antrpc.commons.bean.error.RpcError;
 import io.github.wanggit.antrpc.commons.bean.error.RpcErrorCreator;
+import io.github.wanggit.antrpc.server.invoker.exception.ClassNotLoadException;
+import io.github.wanggit.antrpc.server.invoker.exception.MethodNotFoundException;
 import io.github.wanggit.antrpc.server.utils.CacheClassUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
@@ -32,47 +31,29 @@ public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
         String methodName = requestBean.getMethodName();
         List<String> argumentTypes = requestBean.getArgumentTypes();
         Object[] argumentValues = requestBean.getArgumentValues();
-        Class clazz = internalGetClass(className);
-        if (null == clazz) {
-            return response(requestBean, RpcErrorCreator.create(RpcError.CLASS_NOT_FOUND));
-        }
-        Class[] argTypes = new Class[argumentTypes.size()];
-        for (int i = 0; i < argumentTypes.size(); i++) {
-            String argTypeStr = argumentTypes.get(i);
-            Class argType = internalGetClass(argTypeStr);
-            if (null == argType) {
-                return response(
-                        requestBean, RpcErrorCreator.create(RpcError.ARGUMENT_CLASS_NOT_FOUND));
-            }
-            argTypes[i] = argType;
-        }
-
-        Object bean = null;
         try {
-            bean = springBeanFactory.getBean(clazz);
-        } catch (NoUniqueBeanDefinitionException e) {
-            if (log.isErrorEnabled()) {
-                log.error(e.getMessage(), e);
+            Class clazz = internalGetClass(className);
+            Class[] argTypes = new Class[argumentTypes.size()];
+            for (int i = 0; i < argumentTypes.size(); i++) {
+                String argTypeStr = argumentTypes.get(i);
+                argTypes[i] = internalGetClass(argTypeStr);
             }
-            return response(requestBean, RpcErrorCreator.create(RpcError.MANY_BEANS));
-        } catch (NoSuchBeanDefinitionException e) {
-            if (log.isErrorEnabled()) {
-                log.error(e.getMessage(), e);
+            Object bean = springBeanFactory.getBean(clazz);
+            Method method = ReflectionUtils.findMethod(bean.getClass(), methodName, argTypes);
+            if (null == method) {
+                throw new MethodNotFoundException(
+                        "No " + methodName + " method is found in class " + className);
             }
-            return response(requestBean, RpcErrorCreator.create(RpcError.NO_BEANS));
-        }
-        if (null == bean) {
-            return response(requestBean, RpcErrorCreator.create(RpcError.NO_BEANS));
-        }
-        Method method = ReflectionUtils.findMethod(bean.getClass(), methodName, argTypes);
-        if (null == method) {
+            Object result = ReflectionUtils.invokeMethod(method, bean, argumentValues);
+            return response(requestBean, result);
+        } catch (Throwable throwable) {
             if (log.isErrorEnabled()) {
-                log.error("No " + methodName + " method is found in class " + className);
+                log.error("An exception occurred ", throwable);
             }
-            return response(requestBean, RpcErrorCreator.create(RpcError.METHOD_NOT_FOUND));
+            return response(
+                    requestBean,
+                    RpcErrorCreator.create(throwable.getClass().getName(), throwable.getMessage()));
         }
-        Object result = ReflectionUtils.invokeMethod(method, bean, argumentValues);
-        return response(requestBean, result);
     }
 
     private Class internalGetClass(String className) {
@@ -80,9 +61,8 @@ public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
         try {
             clazz = CacheClassUtil.getInstance().getCacheClass(className);
         } catch (ClassNotFoundException e) {
-            if (log.isErrorEnabled()) {
-                log.error("An exception occurred when " + className + " was parsed to Class.", e);
-            }
+            throw new ClassNotLoadException(
+                    "An exception occurred when " + className + " was parsed to Class.", e);
         }
         return clazz;
     }

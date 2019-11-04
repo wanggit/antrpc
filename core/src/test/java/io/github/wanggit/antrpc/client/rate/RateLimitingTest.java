@@ -36,7 +36,7 @@ public class RateLimitingTest {
             Assert.assertTrue(rateLimiting.allowAccess(methodBRegisterBeanMethod));
         }
         Assert.assertFalse(rateLimiting.allowAccess(methodBRegisterBeanMethod));
-        WaitUtil.wait(2, 1);
+        WaitUtil.wait(3, 1);
         Assert.assertTrue(rateLimiting.allowAccess(methodBRegisterBeanMethod));
     }
 

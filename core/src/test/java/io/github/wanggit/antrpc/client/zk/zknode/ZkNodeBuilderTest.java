@@ -96,15 +96,17 @@ public class ZkNodeBuilderTest {
         ipNodeDataBean.setRpcPort(rpcPort);
         ipNodeDataBean.setTs(System.currentTimeMillis());
         ipNodeDataBean.setAppName("test");
+        String tmpPath =
+                "/"
+                        + ConstantValues.ZK_ROOT_NODE_NAME
+                        + "/127.0.0.1:3210/leafNode_for_keeper_not_delete";
         zkNodeBuilder.remoteCreateZkNode(
-                "/" + ConstantValues.ZK_ROOT_NODE_NAME + "/127.0.0.1:3210",
+                tmpPath,
                 JSONObject.toJSONString(ipNodeDataBean).getBytes(Charset.forName("UTF-8")),
                 CreateMode.PERSISTENT);
         WaitUtil.wait(1, 1, false);
         CuratorFramework curator = antrpcContext.getZkClient().getCurator();
-        byte[] bytes =
-                curator.getData()
-                        .forPath("/" + ConstantValues.ZK_ROOT_NODE_NAME + "/127.0.0.1:3210");
+        byte[] bytes = curator.getData().forPath(tmpPath);
         RegisterBean.IpNodeDataBean dataBean =
                 JSONObject.parseObject(
                         new String(bytes, Charset.forName("UTF-8")),

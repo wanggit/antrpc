@@ -103,6 +103,7 @@ public class RpcClient implements IClient {
             if (log.isErrorEnabled()) {
                 log.error("Connection not alive, send error." + ce.getChannel().toString());
             }
+            connectionPool.invalidateObject(connection);
             ReadClientFutureHolder.removeFuture(rpcProtocol.getCmdId());
             throw ce;
         } finally {

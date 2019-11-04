@@ -6,13 +6,17 @@ import io.github.wanggit.antrpc.client.connections.ConnectionNotActiveException;
 import io.github.wanggit.antrpc.client.future.ReadClientFuture;
 import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
 import io.github.wanggit.antrpc.client.rate.IRateLimiting;
-import io.github.wanggit.antrpc.client.zk.exception.InterfaceProviderNotFoundException;
+import io.github.wanggit.antrpc.client.rate.RateLimitingException;
+import io.github.wanggit.antrpc.client.spring.exception.ResultWasNullException;
+import io.github.wanggit.antrpc.client.spring.exception.ServiceProviderOccurredException;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBeanHelper;
 import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.IRpcClients;
 import io.github.wanggit.antrpc.commons.bean.*;
+import io.github.wanggit.antrpc.commons.bean.error.RpcResponseError;
+import io.github.wanggit.antrpc.commons.breaker.CircuitBreakerWasOpenException;
 import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
@@ -73,166 +77,122 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         if (log.isInfoEnabled()) {
             log.info(className + "#" + method.getName());
         }
-        RegisterBean.RegisterBeanMethod registerBeanMethod =
-                RegisterBeanHelper.getRegisterBeanMethod(method);
-        // 频控限制，超过频控限制就返回null.
-        if (!rateLimiting.allowAccess(registerBeanMethod)) {
-            String errorMessage =
-                    registerBeanMethod.toString()
-                            + " interface calls reach frequency control limit, "
-                            + registerBeanMethod.getLimit()
-                            + " times within "
-                            + registerBeanMethod.getDurationInSeconds()
-                            + " minutes at most.";
-            if (log.isErrorEnabled()) {
-                log.error(errorMessage);
+        NodeHostEntity hostEntity = null;
+        RpcRequestBean rpcRequestBean = null;
+        RpcCallLog rpcCallLog = null;
+        try {
+            RegisterBean.RegisterBeanMethod registerBeanMethod =
+                    RegisterBeanHelper.getRegisterBeanMethod(method);
+            rpcCallLog = initRpcCallLog(registerBeanMethod, className);
+            if (!rateLimiting.allowAccess(registerBeanMethod)) {
+                String errorMessage =
+                        registerBeanMethod.toString()
+                                + " interface calls reach frequency control limit, "
+                                + registerBeanMethod.getLimit()
+                                + " times within "
+                                + registerBeanMethod.getDurationInSeconds()
+                                + " minutes at most.";
+                throw new RateLimitingException(errorMessage);
             }
-            RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-            rpcCallLog.setErrorMessage(errorMessage);
-            rpcCallLogHolder.log(rpcCallLog);
-            return onFailHolder.doOnFail(anInterface, method, args);
-        }
-        RpcRequestBean rpcRequestBean = createRpcRequestBean(className, registerBeanMethod, args);
-        RpcProtocol rpcProtocol = createRpcProtocol(rpcRequestBean);
-        // 调用日志 RpcCallLog
-        NodeHostEntity hostEntity = chooseNodeHostEntity(className, registerBeanMethod);
-
-        // 熔断器判断
-        RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-        rpcCallLog.setIp(hostEntity.getIp());
-        rpcCallLog.setPort(hostEntity.getPort());
-        rpcCallLog.setRequestId(rpcRequestBean.getId());
-        if (circuitBreaker.checkState(rpcCallLog.getCallLogKey(), rpcCallLog.getClassName())) {
-            ReadClientFuture future = null;
-            try {
-                future =
-                        internalSend(
-                                rpcProtocol,
-                                hostEntity,
-                                circuitBreaker,
-                                registerBeanMethod,
-                                className,
-                                rpcRequestBean);
-            } catch (ConnectionNotActiveException cnae) {
-                // 默认重试一次
-                hostEntity = chooseNodeHostEntity(className, registerBeanMethod);
-                future =
-                        internalSend(
-                                rpcProtocol,
-                                hostEntity,
-                                circuitBreaker,
-                                registerBeanMethod,
-                                className,
-                                rpcRequestBean);
-            }
-            RpcResponseBean rpcResponseBean =
-                    getRpcResponseBean(
-                            circuitBreaker,
-                            future,
-                            registerBeanMethod,
-                            className,
-                            hostEntity,
-                            rpcRequestBean);
-            Object result = rpcResponseBean.getResult();
-            rpcCallLog.setEnd(System.currentTimeMillis());
-            rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
-            rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            rpcCallLogHolder.log(rpcCallLog);
-            return result;
-        } else {
-            // 熔断器被打开，记录日志，返回null.
-            CircuitBreakerConfig breaker =
-                    circuitBreaker.getInterfaceCircuitBreaker(rpcCallLog.getClassName());
-            String message = null;
-            if (null == breaker) {
-                message =
-                        rpcCallLog.getClassName()
-                                + " does not have a circuit breaker configured. "
-                                + "but it triggered. Please check the status of the circuit breaker container.";
+            rpcRequestBean = createRpcRequestBean(className, registerBeanMethod, args);
+            RpcProtocol rpcProtocol = createRpcProtocol(rpcRequestBean);
+            // 调用日志 RpcCallLog
+            hostEntity = chooseNodeHostEntity(className);
+            if (circuitBreaker.checkState(getCallLogKey(rpcRequestBean, hostEntity), className)) {
+                ReadClientFuture future = null;
+                try {
+                    future = internalSend(rpcProtocol, hostEntity);
+                } catch (ConnectionNotActiveException cnae) {
+                    // 默认重试一次
+                    hostEntity = chooseNodeHostEntity(className);
+                    future = internalSend(rpcProtocol, hostEntity);
+                }
+                RpcResponseBean rpcResponseBean =
+                        getRpcResponseBean(circuitBreaker, future, hostEntity, rpcRequestBean);
+                if (null == rpcResponseBean) {
+                    throw new ResultWasNullException("result is null.");
+                }
+                rpcCallLog.setIp(hostEntity.getIp());
+                rpcCallLog.setPort(hostEntity.getPort());
+                rpcCallLog.setRequestId(rpcRequestBean.getId());
+                rpcCallLog.setEnd(System.currentTimeMillis());
+                rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
+                rpcCallLogHolder.log(rpcCallLog);
+                Object result = rpcResponseBean.getResult();
+                if (result instanceof RpcResponseError) {
+                    throw new ServiceProviderOccurredException(
+                            ((RpcResponseError) result).getMessage());
+                }
+                return rpcResponseBean.getResult();
             } else {
-                message = JSONObject.toJSONString(breaker);
+                CircuitBreakerConfig breaker = circuitBreaker.getInterfaceCircuitBreaker(className);
+                String message = null;
+                if (null == breaker) {
+                    message =
+                            className
+                                    + " does not have a circuit breaker configured. "
+                                    + "but it triggered. Please check the status of the circuit breaker container.";
+                } else {
+                    message = JSONObject.toJSONString(breaker);
+                }
+                String errorMessage =
+                        getCallLogKey(rpcRequestBean, hostEntity)
+                                + " circuit breaker is open!!! "
+                                + message;
+                throw new CircuitBreakerWasOpenException(errorMessage);
             }
-            String errorMessage =
-                    rpcCallLog.getCallLogKey() + " circuit breaker is open!!! " + message;
-            if (log.isErrorEnabled()) {
-                log.error(errorMessage);
+        } catch (Throwable throwable) {
+            if (null != rpcCallLog) {
+                if (null != hostEntity) {
+                    rpcCallLog.setIp(hostEntity.getIp());
+                    rpcCallLog.setPort(hostEntity.getPort());
+                }
+                rpcCallLog.setEnd(System.currentTimeMillis());
+                rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
+                rpcCallLog.setErrorMessage(throwable.getMessage());
+                rpcCallLogHolder.log(rpcCallLog);
             }
-            RpcCallLog newRpcCallLog = initRpcCallLog(registerBeanMethod, className);
-            newRpcCallLog.setIp(hostEntity.getIp());
-            newRpcCallLog.setPort(hostEntity.getPort());
-            newRpcCallLog.setErrorMessage(errorMessage);
-            newRpcCallLog.setRequestId(rpcRequestBean.getId());
-            newRpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            rpcCallLogHolder.log(newRpcCallLog);
-            return onFailHolder.doOnFail(anInterface, method, args);
+            if (throwable instanceof RateLimitingException
+                    || throwable instanceof CircuitBreakerWasOpenException) {
+                return onFailHolder.doOnFail(anInterface, method, args);
+            }
+            if (throwable instanceof ServiceProviderOccurredException) {
+                // 服务提供者发生了异常
+                circuitBreaker.increament(getCallLogKey(rpcRequestBean, hostEntity));
+            }
         }
+        return null;
+    }
+
+    private String getCallLogKey(RpcRequestBean rpcRequestBean, NodeHostEntity hostEntity) {
+        return rpcRequestBean.getFullClassName()
+                + "."
+                + rpcRequestBean.getMethodName()
+                + "@"
+                + hostEntity.getIp()
+                + ":"
+                + hostEntity.getPort();
     }
 
     private RpcResponseBean getRpcResponseBean(
             ICircuitBreaker circuitBreaker,
             ReadClientFuture future,
-            RegisterBean.RegisterBeanMethod registerBeanMethod,
-            String className,
             NodeHostEntity nodeHostEntity,
             RpcRequestBean rpcRequestBean) {
         RpcResponseBean rpcResponseBean = future.get();
         if (null == rpcResponseBean) {
-            RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-            rpcCallLog.setIp(nodeHostEntity.getIp());
-            rpcCallLog.setPort(nodeHostEntity.getPort());
-            rpcCallLog.setRequestId(rpcRequestBean.getId());
-            circuitBreaker.increament(rpcCallLog.getCallLogKey());
-            String errorMessage =
-                    "The response result is null, either the service provider is unavailable, "
-                            + "or the service provider responds to timeout. "
-                            + rpcCallLog.getCallLogKey();
-            rpcCallLog.setErrorMessage(errorMessage);
-            rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            rpcCallLogHolder.log(rpcCallLog);
-            throw new NullPointerException(errorMessage);
+            circuitBreaker.increament(getCallLogKey(rpcRequestBean, nodeHostEntity));
         }
         return rpcResponseBean;
     }
 
-    private ReadClientFuture internalSend(
-            RpcProtocol rpcProtocol,
-            NodeHostEntity hostEntity,
-            ICircuitBreaker circuitBreaker,
-            RegisterBean.RegisterBeanMethod registerBeanMethod,
-            String className,
-            RpcRequestBean rpcRequestBean) {
+    private ReadClientFuture internalSend(RpcProtocol rpcProtocol, NodeHostEntity hostEntity) {
         RpcClient rpcClient = rpcClients.getRpcClient(hostEntity);
-        ReadClientFuture future = null;
-        try {
-            future = rpcClient.send(rpcProtocol);
-        } catch (RuntimeException cnae) {
-            RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-            rpcCallLog.setPort(hostEntity.getPort());
-            rpcCallLog.setIp(hostEntity.getIp());
-            rpcCallLog.setRequestId(rpcRequestBean.getId());
-            circuitBreaker.increament(rpcCallLog.getCallLogKey());
-            String errorMessage =
-                    "Connection not alive. more info is " + rpcCallLog.getCallLogKey();
-            rpcCallLog.setErrorMessage(errorMessage);
-            rpcCallLog.setRequestArgs(rpcRequestBean.getArgumentValues());
-            rpcCallLogHolder.log(rpcCallLog);
-            throw new ConnectionNotActiveException(errorMessage, cnae);
-        }
-        return future;
+        return rpcClient.send(rpcProtocol);
     }
 
-    private NodeHostEntity chooseNodeHostEntity(
-            String className, RegisterBean.RegisterBeanMethod registerBeanMethod) {
-        NodeHostEntity hostEntity;
-        RpcCallLog rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-        try {
-            hostEntity = nodeHostContainer.choose(className);
-        } catch (InterfaceProviderNotFoundException e) {
-            rpcCallLog.setErrorMessage(e.getMessage());
-            rpcCallLogHolder.log(rpcCallLog);
-            throw e;
-        }
-        return hostEntity;
+    private NodeHostEntity chooseNodeHostEntity(String className) {
+        return nodeHostContainer.choose(className);
     }
 
     private RpcCallLog initRpcCallLog(

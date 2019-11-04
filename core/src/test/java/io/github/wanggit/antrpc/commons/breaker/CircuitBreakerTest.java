@@ -26,6 +26,16 @@ public class CircuitBreakerTest {
         return rpcCallLog;
     }
 
+    private String getCallLogKey(RpcCallLog rpcCallLog) {
+        return rpcCallLog.getClassName()
+                + "."
+                + rpcCallLog.getMethodName()
+                + "@"
+                + rpcCallLog.getIp()
+                + ":"
+                + rpcCallLog.getPort();
+    }
+
     private Map<String, CircuitBreakerConfig> setCircuitBreakerConfigToMap(
             String className, int threshold, int checkIntervalSeconds) {
         Map<String, CircuitBreakerConfig> interfaceConfigs = new HashMap<>();
@@ -73,7 +83,7 @@ public class CircuitBreakerTest {
         rpcCallLog.setClassName(CircuitBreakerTest.class.getName());
         for (int i = 0; i < 50; i++) {
             Assert.assertTrue(
-                    breaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                    breaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
         }
     }
 
@@ -85,28 +95,28 @@ public class CircuitBreakerTest {
         configuration.setInterfaceBreakerConfigs(
                 setCircuitBreakerConfigToMap(rpcCallLog.getClassName(), 5, 10));
         CircuitBreaker circuitBreaker = new CircuitBreaker(configuration);
-        circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey());
+        circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog));
         for (int i = 0; i < 50; i++) {
             if (i < 10) {
-                circuitBreaker.increament(rpcCallLog.getCallLogKey());
+                circuitBreaker.increament(getCallLogKey(rpcCallLog));
             }
             if (i < 5) {
                 Assert.assertTrue(
                         circuitBreaker.checkState(
-                                rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                                rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
             }
             if (i >= 5 && i < 15) {
                 Assert.assertFalse(
                         circuitBreaker.checkState(
-                                rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                                rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
             }
             if (i >= 15) {
                 Assert.assertTrue(
                         circuitBreaker.checkState(
-                                rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                                rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
             }
             System.out.println(
-                    circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey())
+                    circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog))
                             + " --> "
                             + i);
             WaitUtil.wait(1, 1, false);
@@ -121,40 +131,40 @@ public class CircuitBreakerTest {
                 setCircuitBreakerConfigToMap(CircuitBreaker.class.getName(), 10, 10));
         CircuitBreaker circuitBreaker = new CircuitBreaker(configuration);
         Assert.assertTrue(
-                circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
         Assert.assertTrue(
-                circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
 
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
         WaitUtil.wait(5, 2);
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
-        circuitBreaker.increament(rpcCallLog.getCallLogKey());
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
+        circuitBreaker.increament(getCallLogKey(rpcCallLog));
         Assert.assertTrue(
-                circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
         WaitUtil.wait(3, 2);
 
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
-        System.out.println(circuitBreaker.increament(rpcCallLog.getCallLogKey()));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
+        System.out.println(circuitBreaker.increament(getCallLogKey(rpcCallLog)));
         Assert.assertFalse(
-                circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
         WaitUtil.wait(10, 2);
         Assert.assertTrue(
-                circuitBreaker.checkState(rpcCallLog.getClassName(), rpcCallLog.getCallLogKey()));
+                circuitBreaker.checkState(rpcCallLog.getClassName(), getCallLogKey(rpcCallLog)));
     }
 }
 
