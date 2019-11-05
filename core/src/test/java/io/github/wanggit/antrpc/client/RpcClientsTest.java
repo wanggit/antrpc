@@ -26,6 +26,62 @@ import java.util.*;
 
 public class RpcClientsTest {
 
+    @RpcService
+    interface Test3Interface {
+
+        @RpcMethod
+        void sayHello(String name);
+    }
+
+    public static class Test3Impl implements Test3Interface {
+
+        @Override
+        public void sayHello(String name) {
+            throw new RuntimeException("raise exception " + name);
+        }
+    }
+
+    @Test
+    public void testServiceProviderRaiseException() throws InterruptedException {
+        int httpPort = RandomUtils.nextInt(2000, 9999);
+        int rpcPort = RandomUtils.nextInt(2000, 9999);
+        RegisterBean registerBean =
+                createRegisterBeanCommons(
+                        rpcPort,
+                        Test3Interface.class.getName(),
+                        "sayHello",
+                        Lists.newArrayList("java.lang.String"));
+        Map<String, Object> singletons = new HashMap<>();
+        singletons.put(Test3Impl.class.getName(), new Test3Impl());
+        createRpcServer(
+                httpPort,
+                rpcPort,
+                "testServiceProviderRaiseExceptionServer",
+                singletons,
+                Lists.newArrayList(registerBean),
+                new ConfigurationCallback() {
+                    @Override
+                    public void initConfiguration(Configuration configuration) {}
+                });
+
+        int clientTttpPort = RandomUtils.nextInt(2000, 9999);
+        int clientRpcPort = RandomUtils.nextInt(2000, 9999);
+        AntrpcContext antrpcContext =
+                createRpcClient(
+                        clientTttpPort,
+                        clientRpcPort,
+                        "testServiceProviderRaiseExceptionClient",
+                        singletons,
+                        new ConfigurationCallback() {
+                            @Override
+                            public void initConfiguration(Configuration configuration) {}
+                        });
+        Object bean = antrpcContext.getBeanContainer().getOrCreateBean(Test3Interface.class);
+        Assert.assertTrue(bean instanceof Test3Interface);
+        Test3Interface test3Interface = (Test3Interface) bean;
+        test3Interface.sayHello("wanggang");
+    }
+
     @Test
     public void testHeartBeat() throws InterruptedException {
         int httpPort = RandomUtils.nextInt(2000, 9999);
@@ -226,6 +282,20 @@ public class RpcClientsTest {
         RegisterBean.RegisterBeanMethod registerBeanMethod = new RegisterBean.RegisterBeanMethod();
         registerBeanMethod.setMethodName("sendMoreMessage");
         registerBeanMethod.setParameterTypeNames(Lists.newArrayList("java.lang.String"));
+        registerBeanMethods.add(registerBeanMethod);
+        registerBean.setMethods(registerBeanMethods);
+        return registerBean;
+    }
+
+    private RegisterBean createRegisterBeanCommons(
+            int rpcPort, String className, String methodName, List<String> parameterTypes) {
+        RegisterBean registerBean = new RegisterBean();
+        registerBean.setClassName(className);
+        registerBean.setPort(rpcPort);
+        List<RegisterBean.RegisterBeanMethod> registerBeanMethods = new ArrayList<>();
+        RegisterBean.RegisterBeanMethod registerBeanMethod = new RegisterBean.RegisterBeanMethod();
+        registerBeanMethod.setMethodName(methodName);
+        registerBeanMethod.setParameterTypeNames(parameterTypes);
         registerBeanMethods.add(registerBeanMethod);
         registerBean.setMethods(registerBeanMethods);
         return registerBean;

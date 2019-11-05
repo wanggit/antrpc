@@ -112,17 +112,17 @@ public class CglibMethodInterceptor implements MethodInterceptor {
                 if (null == rpcResponseBean) {
                     throw new ResultWasNullException("result is null.");
                 }
+                Object result = rpcResponseBean.getResult();
+                if (result instanceof RpcResponseError) {
+                    throw new ServiceProviderOccurredException(
+                            ((RpcResponseError) result).getMessage());
+                }
                 rpcCallLog.setIp(hostEntity.getIp());
                 rpcCallLog.setPort(hostEntity.getPort());
                 rpcCallLog.setRequestId(rpcRequestBean.getId());
                 rpcCallLog.setEnd(System.currentTimeMillis());
                 rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
                 rpcCallLogHolder.log(rpcCallLog);
-                Object result = rpcResponseBean.getResult();
-                if (result instanceof RpcResponseError) {
-                    throw new ServiceProviderOccurredException(
-                            ((RpcResponseError) result).getMessage());
-                }
                 return rpcResponseBean.getResult();
             } else {
                 CircuitBreakerConfig breaker = circuitBreaker.getInterfaceCircuitBreaker(className);
