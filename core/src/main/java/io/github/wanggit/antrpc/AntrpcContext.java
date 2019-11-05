@@ -302,7 +302,7 @@ public class AntrpcContext implements IAntrpcContext {
             this.serializerHolder = new SerializerHolder(configuration);
         } catch (Exception e) {
             throw new BeanCreationException(
-                    "SerializerHolder initialization failed, please check that the configured [antrpc.serialize-type = "
+                    "SerializerHolder initialization failed, please heartBeatWasContinuousLoss that the configured [antrpc.serialize-type = "
                             + configuration.getSerializeConfig().getType()
                             + "] was correct.");
         }

@@ -25,6 +25,6 @@ public class ConnectionFactory extends BasePooledObjectFactory<Connection> {
 
     @Override
     public PooledObject<Connection> wrap(Connection obj) {
-        return new DefaultPooledObject<Connection>(obj);
+        return new DefaultPooledObject<>(obj);
     }
 }

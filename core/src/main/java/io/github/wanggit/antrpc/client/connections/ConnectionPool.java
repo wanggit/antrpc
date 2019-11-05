@@ -21,9 +21,8 @@ public class ConnectionPool {
             ConnectionManager connectionManager,
             Host host,
             GenericObjectPoolConfig<Connection> config) {
-        pool =
-                new GenericObjectPool<Connection>(
-                        new ConnectionFactory(connectionManager, host), config);
+        connectionManager.addConnectionPool(host, this);
+        pool = new GenericObjectPool<>(new ConnectionFactory(connectionManager, host), config);
         initPool(config.getMinIdle());
         executor.scheduleAtFixedRate(
                 new Runnable() {
@@ -35,10 +34,6 @@ public class ConnectionPool {
                 500,
                 1000,
                 TimeUnit.MILLISECONDS);
-    }
-
-    public ConnectionPool(ConnectionManager connectionManager, Host host) {
-        this(connectionManager, host, new GenericObjectPoolConfig<Connection>());
     }
 
     private void initPool(int cnt) {

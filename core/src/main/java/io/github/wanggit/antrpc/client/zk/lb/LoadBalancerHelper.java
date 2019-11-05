@@ -15,7 +15,7 @@ public class LoadBalancerHelper {
             loadBalancer = (ILoadBalancer) configuration.getLoadBalancerName().newInstance();
         } catch (Exception e) {
             String message =
-                    "Failed to instantiate ILoadBalancer, check the "
+                    "Failed to instantiate ILoadBalancer, heartBeatWasContinuousLoss the "
                             + Constants.RPC_LOAD_BALANCER_PROP_NAME
                             + " configuration. The value of the current configuration is "
                             + configuration.getLoadBalancerName().getName();

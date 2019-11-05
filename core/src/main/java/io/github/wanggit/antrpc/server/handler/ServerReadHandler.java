@@ -1,9 +1,6 @@
 package io.github.wanggit.antrpc.server.handler;
 
-import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
-import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
-import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
-import io.github.wanggit.antrpc.commons.bean.SerialNumberThreadLocal;
+import io.github.wanggit.antrpc.commons.bean.*;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
@@ -29,23 +26,24 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
             if (log.isDebugEnabled()) {
                 log.debug("Heartbeat received from [" + ctx.channel() + "]");
             }
-            return;
-        }
-
-        RpcRequestBean requestBean =
-                (RpcRequestBean) serializerHolder.getSerializer().deserialize(msg.getData());
-
-        SerialNumberThreadLocal.TraceEntity traceEntity = new SerialNumberThreadLocal.TraceEntity();
-        traceEntity.setSerialNumber(requestBean.getSerialNumber());
-        traceEntity.setCaller(requestBean.getId());
-        SerialNumberThreadLocal.set(traceEntity);
-        RpcResponseBean bean = rpcRequestBeanInvoker.invoke(requestBean);
-        if (!requestBean.isOneway()) {
-            RpcProtocol protocol = new RpcProtocol();
-            protocol.setCmdId(msg.getCmdId());
-            protocol.setType(msg.getType());
-            protocol.setData(serializerHolder.getSerializer().serialize(bean));
-            ctx.channel().writeAndFlush(protocol);
+            RpcProtocol rpcProtocol = HeartBeatCreator.create(msg.getCmdId());
+            ctx.channel().writeAndFlush(rpcProtocol);
+        } else {
+            RpcRequestBean requestBean =
+                    (RpcRequestBean) serializerHolder.getSerializer().deserialize(msg.getData());
+            SerialNumberThreadLocal.TraceEntity traceEntity =
+                    new SerialNumberThreadLocal.TraceEntity();
+            traceEntity.setSerialNumber(requestBean.getSerialNumber());
+            traceEntity.setCaller(requestBean.getId());
+            SerialNumberThreadLocal.set(traceEntity);
+            RpcResponseBean bean = rpcRequestBeanInvoker.invoke(requestBean);
+            if (!requestBean.isOneway()) {
+                RpcProtocol protocol = new RpcProtocol();
+                protocol.setCmdId(msg.getCmdId());
+                protocol.setType(msg.getType());
+                protocol.setData(serializerHolder.getSerializer().serialize(bean));
+                ctx.channel().writeAndFlush(protocol);
+            }
         }
     }
 

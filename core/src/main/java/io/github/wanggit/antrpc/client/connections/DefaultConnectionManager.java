@@ -6,10 +6,14 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @Slf4j
 public class DefaultConnectionManager implements ConnectionManager {
 
     private Bootstrap client;
+
+    private ConcurrentHashMap<Host, ConnectionPool> connectionPoolMap = new ConcurrentHashMap<>();
 
     public DefaultConnectionManager(Bootstrap client) {
         this.client = client;
@@ -29,12 +33,26 @@ public class DefaultConnectionManager implements ConnectionManager {
                                     channelFuture.channel().close();
                                 }
                             });
-            return new DefaultConnection(future.channel());
+            if (!connectionPoolMap.containsKey(host)) {
+                if (log.isErrorEnabled()) {
+                    log.error(
+                            "The connection pool for "
+                                    + host.getHostInfo()
+                                    + " host was not found.");
+                }
+                return null;
+            }
+            return new DefaultConnection(future.channel(), connectionPoolMap.get(host));
         } catch (InterruptedException e) {
             if (log.isErrorEnabled()) {
                 log.error("Failed to create Netty connection.", e);
             }
             return null;
         }
+    }
+
+    @Override
+    public void addConnectionPool(Host host, ConnectionPool connectionPool) {
+        this.connectionPoolMap.put(host, connectionPool);
     }
 }

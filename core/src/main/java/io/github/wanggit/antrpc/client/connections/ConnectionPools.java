@@ -32,12 +32,6 @@ public class ConnectionPools {
         return connectionPool;
     }
 
-    public static ConnectionPool getOrCreateConnectionPool(
-            Host host, ConnectionManager connectionManager) {
-        return ConnectionPools.getOrCreateConnectionPool(
-                host, connectionManager, new GenericObjectPoolConfig<Connection>());
-    }
-
     private static ConcurrentHashMap<Host, ConnectionPool> map =
             new ConcurrentHashMap<Host, ConnectionPool>();
 }

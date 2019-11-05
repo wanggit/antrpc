@@ -131,7 +131,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
                     message =
                             className
                                     + " does not have a circuit breaker configured. "
-                                    + "but it triggered. Please check the status of the circuit breaker container.";
+                                    + "but it triggered. Please heartBeatWasContinuousLoss the status of the circuit breaker container.";
                 } else {
                     message = JSONObject.toJSONString(breaker);
                 }
