@@ -1,0 +1,25 @@
+server:
+  port: 5050
+antrpc:
+  port: 5051
+  start-server: false
+  zk-servers: localhost:2181
+spring:
+  kafka:
+    bootstrap-servers: 47.110.58.104:9092
+    consumer:
+      group-id: rpc-monitor
+      enable-auto-commit: true
+      auto-commit-interval: 100
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  elasticsearch:
+    jest:
+      uris: http://192.168.14.132:9200
+  data:
+    elasticsearch:
+      cluster-name: docker-cluster
+      repositories:
+        enabled: true
+  application:
+    name: AntRPC-Monitor
