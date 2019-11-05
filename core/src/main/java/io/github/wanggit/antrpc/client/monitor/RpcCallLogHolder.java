@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.client.monitor;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.monitor.report.IKafkaLogReporter;
 import io.github.wanggit.antrpc.client.monitor.report.ILogReporter;
 import io.github.wanggit.antrpc.client.monitor.report.NoOpLogReporter;
@@ -32,6 +33,9 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
 
     @Override
     public void log(RpcCallLog rpcCallLog) {
+        if (log.isInfoEnabled()) {
+            log.info(JSONObject.toJSONString(rpcCallLog));
+        }
         logReporter.report(rpcCallLog);
     }
 }
