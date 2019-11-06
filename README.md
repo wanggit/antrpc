@@ -32,3 +32,5 @@ http://curator.apache.org/zk-compatibility.html
 </dependency>
 ```
 经测试兼容zookeeper 3.4.5版本
+
+spring-boot 测试过2.0.3.RELEASE与2.2.0.RELEASE两个版本
