@@ -2,7 +2,6 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
-import io.github.wanggit.antrpc.client.monitor.RpcMonitorApi;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomUtils;
@@ -43,7 +42,7 @@ public class RpcBeanContainerTest {
                                     objects.add(
                                             antrpcContext
                                                     .getBeanContainer()
-                                                    .getOrCreateBean(RpcMonitorApi.class)))
+                                                    .getOrCreateBean(TestInterface.class)))
                     .start();
         }
         WaitUtil.wait(5, 1);
@@ -53,6 +52,8 @@ public class RpcBeanContainerTest {
         }
         Assert.assertEquals(1, set.size());
     }
+
+    interface TestInterface {}
 }
 
 // Generated with love by TestMe :) Please report issues and submit feature requests at:

@@ -36,9 +36,6 @@ public class Configuration implements IConfiguration {
     /** 负载均衡默认对象 */
     private Class loadBalancerName = RoundLoadBalancer.class;
 
-    /** 监控平台地址，多个使用逗号间隔 */
-    private String monitorHosts;
-
     /** 全局的熔断器配置 */
     private CircuitBreakerConfig globalBreakerConfig;
 
@@ -53,9 +50,6 @@ public class Configuration implements IConfiguration {
 
     /** 用于开发状态下接口的直连设置，在生产环境下不建议使用 */
     private Map<String, DirectNodeHostEntity> directHosts;
-
-    /** Metrics Config */
-    private MetricsConfig metricsConfig;
 
     /** Codec Config */
     private CodecConfig codecConfig;
@@ -112,15 +106,6 @@ public class Configuration implements IConfiguration {
     }
 
     @Override
-    public MetricsConfig getMetricsConfig() {
-        return metricsConfig;
-    }
-
-    public void setMetricsConfig(MetricsConfig metricsConfig) {
-        this.metricsConfig = metricsConfig;
-    }
-
-    @Override
     public Map<String, DirectNodeHostEntity> getDirectHosts() {
         return directHosts;
     }
@@ -159,10 +144,6 @@ public class Configuration implements IConfiguration {
 
     public void setLoadBalancerName(Class loadBalancerName) {
         this.loadBalancerName = loadBalancerName;
-    }
-
-    public void setMonitorHosts(String monitorHosts) {
-        this.monitorHosts = monitorHosts;
     }
 
     public void setGlobalBreakerConfig(CircuitBreakerConfig globalBreakerConfig) {
@@ -221,11 +202,6 @@ public class Configuration implements IConfiguration {
     @Override
     public Class getLoadBalancerName() {
         return loadBalancerName;
-    }
-
-    @Override
-    public String getMonitorHosts() {
-        return monitorHosts;
     }
 
     @Override

@@ -9,9 +9,8 @@ public class HeartBeatCounter implements IHeartBeatCounter {
 
     @Override
     public void send(int cmdId) {
-        int idx = index.getAndIncrement();
-        container[idx] = cmdId;
-        if (index.get() >= container.length) {
+        int idx = index.get();
+        if (idx >= container.length - 1) {
             synchronized (this) {
                 int[] tmp = new int[container.length];
                 System.arraycopy(container, 10, tmp, 0, 10);
@@ -19,6 +18,7 @@ public class HeartBeatCounter implements IHeartBeatCounter {
                 index.set(10);
             }
         }
+        container[index.getAndIncrement()] = cmdId;
     }
 
     @Override

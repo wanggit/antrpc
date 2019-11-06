@@ -13,7 +13,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <curator-recipes.version>2.13.0</curator-recipes.version>
     </properties>
 
     <dependencies>
@@ -25,19 +24,19 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <version>2.1.6.RELEASE</version>
+            <version>${spring-boot.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>2.1.6.RELEASE</version>
+            <version>${spring-boot.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
-            <version>2.2.10.RELEASE</version>
+            <version>${spring-kafka.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -45,28 +44,6 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
             <scope>compile</scope>
-        </dependency>
-
-
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>4.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jvm</artifactId>
-            <version>4.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jmx</artifactId>
-            <version>4.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-servlets</artifactId>
-            <version>4.1.0</version>
         </dependency>
 
     </dependencies>

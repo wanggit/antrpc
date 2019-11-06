@@ -189,6 +189,7 @@ public class CglibMethodInterceptorTest {
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setEnvironment(environment);
         configuration.setZkIps("localhost:2181");
+        configuration.setPort(rpcPort);
         genericApplicationContext.refresh();
         setBeansToSpringContext(genericApplicationContext);
         antrpcContext.init(genericApplicationContext);

@@ -1,19 +1,13 @@
 package io.github.wanggit.antrpc.boot;
 
-import com.codahale.metrics.MetricRegistry;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.Host;
-import io.github.wanggit.antrpc.client.monitor.MonitorMetricsSender;
 import io.github.wanggit.antrpc.client.zk.zknode.DirectNodeHostEntity;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
-import io.github.wanggit.antrpc.commons.config.MetricsConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
-import io.github.wanggit.antrpc.commons.metrics.IMetricsSender;
-import io.github.wanggit.antrpc.commons.metrics.JvmMetrics;
-import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -22,12 +16,10 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.web.servlet.context.ServletWebServerInitializedEvent;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.GenericApplicationListener;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.kafka.core.KafkaTemplate;
 
@@ -41,7 +33,7 @@ import java.util.Map;
  * ServletWebServerInitializedEvent 7 ApplicationStartedEvent 8 ApplicationReadyEvent
  */
 @Slf4j
-public class RpcApplicationListener implements GenericApplicationListener {
+public class RpcApplicationListener implements ApplicationListener<ApplicationEvent> {
 
     private static final String INTERFACE_BREAKER = "interface-circuit-breaker";
     private final ConfigurationPropertyName RPC_INTERFACE_PROP =
@@ -54,11 +46,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
     private IAntrpcContext context;
 
     @Override
-    public boolean supportsEventType(ResolvableType eventType) {
-        return true;
-    }
-
-    @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof ApplicationStartingEvent) {
             // 1
@@ -66,9 +53,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
         } else if (event instanceof ApplicationEnvironmentPreparedEvent) {
             // 2
             onApplicationEnvironmentPreparedEvent((ApplicationEnvironmentPreparedEvent) event);
-        } else if (event instanceof ApplicationContextInitializedEvent) {
-            // 3
-            onApplicationContextInitializedEvent((ApplicationContextInitializedEvent) event);
         } else if (event instanceof ApplicationPreparedEvent) {
             // 4
             onApplicationPreparedEvent((ApplicationPreparedEvent) event);
@@ -125,7 +109,7 @@ public class RpcApplicationListener implements GenericApplicationListener {
         ((Configuration) configuration).setEnvironment(environment);
     }
 
-    private void onApplicationContextInitializedEvent(ApplicationContextInitializedEvent event) {
+    private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
         ConfigurableApplicationContext applicationContext = event.getApplicationContext();
         ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
         if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
@@ -133,39 +117,7 @@ public class RpcApplicationListener implements GenericApplicationListener {
         }
     }
 
-    private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {}
-
-    private void onContextRefreshedEvent(ContextRefreshedEvent event) {
-        ApplicationContext applicationContext = event.getApplicationContext();
-        AntrpcContext antrpcContext = (AntrpcContext) context;
-        RpcProperties rpcProperties = applicationContext.getBean(RpcProperties.class);
-        MetricsConfig metricsConfig = rpcProperties.getMetricsConfig();
-        if (null != metricsConfig && metricsConfig.isEnable()) {
-            ConfigurableListableBeanFactory beanFactory =
-                    ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
-            KafkaTemplate kafkaTemplate = tryFoundKafkaTemplate(beanFactory);
-            if (null == kafkaTemplate) {
-                log.warn(
-                        "Application indicator reporting was started, but Kafka configuration was not found. KafkaTemplate object was needed.");
-            } else {
-                IMetricsSender metricsSender =
-                        new MonitorMetricsSender(
-                                ApplicationNameUtil.getApplicationName(
-                                        applicationContext.getEnvironment()),
-                                kafkaTemplate);
-                beanFactory.registerSingleton(IMetricsSender.class.getName(), metricsSender);
-                JvmMetrics jvmMetrics =
-                        new JvmMetrics(
-                                metricsConfig,
-                                applicationContext.getBean(MetricRegistry.class),
-                                antrpcContext.getConfiguration(),
-                                metricsSender,
-                                antrpcContext.getRpcClients());
-                beanFactory.registerSingleton(JvmMetrics.class.getName(), jvmMetrics);
-                jvmMetrics.init();
-            }
-        }
-    }
+    private void onContextRefreshedEvent(ContextRefreshedEvent event) {}
 
     private void onApplicationReadyEvent(ApplicationReadyEvent event) {
         IAntrpcContext antrpcContext = event.getApplicationContext().getBean(IAntrpcContext.class);
@@ -199,10 +151,6 @@ public class RpcApplicationListener implements GenericApplicationListener {
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e.getMessage(), e);
             }
-        }
-        String monitorHost = rpcProperties.getMonitorHost();
-        if (null != monitorHost) {
-            configuration.setMonitorHosts(monitorHost);
         }
         if (null != rpcProperties.getDirectHosts() && !rpcProperties.getDirectHosts().isEmpty()) {
             Map<String, DirectNodeHostEntity> directHostEntities =

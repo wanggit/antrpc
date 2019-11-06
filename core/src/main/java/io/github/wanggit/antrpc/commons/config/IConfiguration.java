@@ -17,8 +17,6 @@ public interface IConfiguration {
 
     Environment getEnvironment();
 
-    MetricsConfig getMetricsConfig();
-
     Map<String, DirectNodeHostEntity> getDirectHosts();
 
     boolean isStartServer();
@@ -38,8 +36,6 @@ public interface IConfiguration {
     String getZkRootNodeName();
 
     Class getLoadBalancerName();
-
-    String getMonitorHosts();
 
     CircuitBreakerConfig getGlobalBreakerConfig();
 

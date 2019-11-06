@@ -19,14 +19,10 @@ public class RpcProperties {
 
     private String loadBalancer = RoundLoadBalancer.class.getName();
 
-    private String monitorHost;
-
     private boolean startServer = true;
 
     /** global circuit breaker */
     @NestedConfigurationProperty private CircuitBreakerConfig circuitBreakers;
-
-    @NestedConfigurationProperty private MetricsConfig metricsConfig;
 
     @NestedConfigurationProperty private CallLogReporterConfig callLogReporterConfig;
 

@@ -1,7 +1,5 @@
 package io.github.wanggit.antrpc.boot;
 
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.health.HealthCheckRegistry;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
@@ -14,16 +12,14 @@ import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
-import io.github.wanggit.antrpc.commons.metrics.IMetricsSender;
-import io.github.wanggit.antrpc.commons.metrics.JvmMetrics;
 import io.github.wanggit.antrpc.server.IServer;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationContextInitializedEvent;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.event.ApplicationStartingEvent;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -98,12 +94,8 @@ public class RpcApplicationListenerTest {
                                 Bindable.of(RpcProperties.class))
                         .orElseGet(RpcProperties::new);
 
-        // 3 ApplicationContextInitializedEvent
         GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
         genericApplicationContext.setEnvironment(environment);
-        ApplicationContextInitializedEvent applicationContextInitializedEvent =
-                new ApplicationContextInitializedEvent(
-                        springApplication, new String[] {}, genericApplicationContext);
         genericApplicationContext.refresh();
         genericApplicationContext
                 .getBeanFactory()
@@ -115,24 +107,27 @@ public class RpcApplicationListenerTest {
         genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(ZkRegister.class.getName(), new ZkRegister());
+        // 3 ApplicationContextInitializedEvent
+        /*ApplicationContextInitializedEvent applicationContextInitializedEvent =
+                new ApplicationContextInitializedEvent(
+                        springApplication, new String[] {}, genericApplicationContext);
         rpcApplicationListener.onApplicationEvent(applicationContextInitializedEvent);
+        */
+
+        // 4 ApplicationPreparedEvent
+        ApplicationPreparedEvent applicationPreparedEvent =
+                new ApplicationPreparedEvent(
+                        springApplication, new String[] {}, genericApplicationContext);
+        rpcApplicationListener.onApplicationEvent(applicationPreparedEvent);
         IAntrpcContext bean = genericApplicationContext.getBean(IAntrpcContext.class);
         Assert.assertNotNull(bean);
         Object contextBean = genericApplicationContext.getBean("antrpcContext");
         Assert.assertNotNull(contextBean);
         Assert.assertTrue(contextBean instanceof IAntrpcContext);
 
-        // 4 ApplicationPreparedEvent
-
         // 5 ContextRefreshedEvent
         ContextRefreshedEvent contextRefreshedEvent =
                 new ContextRefreshedEvent(genericApplicationContext);
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(MetricRegistry.class.getName(), new MetricRegistry());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(HealthCheckRegistry.class.getName(), new HealthCheckRegistry());
         rpcApplicationListener.onApplicationEvent(contextRefreshedEvent);
         Register register = genericApplicationContext.getBean(Register.class);
         Assert.assertNotNull(register);
@@ -142,14 +137,6 @@ public class RpcApplicationListenerTest {
         try {
             kafkaTemplate = genericApplicationContext.getBean(KafkaTemplate.class);
         } catch (Exception e) {
-        }
-        if (null != rpcProperties.getMetricsConfig()
-                && rpcProperties.getMetricsConfig().isEnable()
-                && null != kafkaTemplate) {
-            IMetricsSender metricsSender = genericApplicationContext.getBean(IMetricsSender.class);
-            Assert.assertNotNull(metricsSender);
-            JvmMetrics jvmMetrics = genericApplicationContext.getBean(JvmMetrics.class);
-            Assert.assertNotNull(jvmMetrics);
         }
 
         // 8 ApplicationReadyEvent
