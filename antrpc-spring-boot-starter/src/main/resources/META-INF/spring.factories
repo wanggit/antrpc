@@ -1,5 +1,3 @@
 # Intializers
 # application listeners
 org.springframework.context.ApplicationListener=io.github.wanggit.antrpc.boot.RpcApplicationListener
-# auto configure
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=io.github.wanggit.antrpc.boot.RpcConfiguration

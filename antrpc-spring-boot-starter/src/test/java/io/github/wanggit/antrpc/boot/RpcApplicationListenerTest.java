@@ -2,11 +2,7 @@ package io.github.wanggit.antrpc.boot;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.register.Register;
-import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.config.CallLogReporterConfig;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
@@ -27,7 +23,6 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.support.GenericApplicationContext;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.ReflectionUtils;
 
@@ -97,7 +92,7 @@ public class RpcApplicationListenerTest {
         GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
         genericApplicationContext.setEnvironment(environment);
         genericApplicationContext.refresh();
-        genericApplicationContext
+        /*genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(RpcProperties.class.getName(), properties);
         genericApplicationContext
@@ -106,7 +101,7 @@ public class RpcApplicationListenerTest {
                         RpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
         genericApplicationContext
                 .getBeanFactory()
-                .registerSingleton(ZkRegister.class.getName(), new ZkRegister());
+                .registerSingleton(ZkRegister.class.getName(), new ZkRegister());*/
         // 3 ApplicationContextInitializedEvent
         /*ApplicationContextInitializedEvent applicationContextInitializedEvent =
                 new ApplicationContextInitializedEvent(
@@ -131,21 +126,11 @@ public class RpcApplicationListenerTest {
         rpcApplicationListener.onApplicationEvent(contextRefreshedEvent);
         Register register = genericApplicationContext.getBean(Register.class);
         Assert.assertNotNull(register);
-        RpcProperties rpcProperties = genericApplicationContext.getBean(RpcProperties.class);
-        Assert.assertNotNull(rpcProperties);
-        KafkaTemplate kafkaTemplate = null;
-        try {
-            kafkaTemplate = genericApplicationContext.getBean(KafkaTemplate.class);
-        } catch (Exception e) {
-        }
 
         // 8 ApplicationReadyEvent
         ApplicationReadyEvent applicationReadyEvent =
                 new ApplicationReadyEvent(
                         springApplication, new String[] {}, genericApplicationContext);
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
         rpcApplicationListener.onApplicationEvent(applicationReadyEvent);
         AntrpcContext antrpcContextImpl = (AntrpcContext) antrpcContext;
         IServer server = antrpcContextImpl.getServer();

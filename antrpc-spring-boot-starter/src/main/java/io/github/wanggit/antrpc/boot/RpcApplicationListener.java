@@ -3,13 +3,18 @@ package io.github.wanggit.antrpc.boot;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
+import io.github.wanggit.antrpc.client.zk.register.Register;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.DirectNodeHostEntity;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.event.*;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -21,7 +26,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +48,8 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
 
     private static final String ANTRPC_CONTEXT_BEAN_NAME = "antrpcContext";
     private IAntrpcContext context;
+    private boolean onApplicationEnvironmentPreparedEventExecuted = false;
+    private boolean onApplicationReadyEventExecuted = false;
 
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
@@ -77,6 +83,10 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
     }
 
     private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
+        if (onApplicationEnvironmentPreparedEventExecuted) {
+            return;
+        }
+        onApplicationEnvironmentPreparedEventExecuted = true;
         ConfigurableEnvironment environment = event.getEnvironment();
         Binder binder = Binder.get(environment);
         IConfiguration configuration = context.getConfiguration();
@@ -112,6 +122,16 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
     private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
         ConfigurableApplicationContext applicationContext = event.getApplicationContext();
         ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
+        if (!beanFactory.containsBean(IRpcAutowiredProcessor.class.getName())) {
+            beanFactory.registerSingleton(
+                    IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
+        }
+        if (!beanFactory.containsBean(IOnFailProcessor.class.getName())) {
+            beanFactory.registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
+        }
+        if (!beanFactory.containsBean(Register.class.getName())) {
+            beanFactory.registerSingleton(Register.class.getName(), new ZkRegister());
+        }
         if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
             beanFactory.registerSingleton(ANTRPC_CONTEXT_BEAN_NAME, context);
         }
@@ -120,6 +140,10 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
     private void onContextRefreshedEvent(ContextRefreshedEvent event) {}
 
     private void onApplicationReadyEvent(ApplicationReadyEvent event) {
+        if (onApplicationReadyEventExecuted) {
+            return;
+        }
+        onApplicationReadyEventExecuted = true;
         IAntrpcContext antrpcContext = event.getApplicationContext().getBean(IAntrpcContext.class);
         antrpcContext.init(event.getApplicationContext());
     }
@@ -171,13 +195,5 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
         configuration.setCodecConfig(rpcProperties.getCodecConfig());
         configuration.setSerializeConfig(rpcProperties.getSerializeConfig());
-    }
-
-    private KafkaTemplate tryFoundKafkaTemplate(ConfigurableListableBeanFactory beanFactory) {
-        try {
-            return beanFactory.getBean(KafkaTemplate.class);
-        } catch (NoSuchBeanDefinitionException e) {
-            return null;
-        }
     }
 }
