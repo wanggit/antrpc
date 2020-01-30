@@ -12,6 +12,9 @@ public class Configuration implements IConfiguration {
     /** 暴露的RPC端口 */
     private Integer port = 6060;
 
+    /** 对外注册时暴露的IP */
+    private String exposeIp = null;
+
     /** 是否开启RPC服务端 */
     private boolean startServer = true;
 
@@ -39,6 +42,9 @@ public class Configuration implements IConfiguration {
     /** 全局的熔断器配置 */
     private CircuitBreakerConfig globalBreakerConfig;
 
+    /** 处理连接是否可用的熔断器配置 */
+    private CircuitBreakerConfig connectionBreakerConfig;
+
     /** 调用日志记录配置 */
     private CallLogReporterConfig callLogReporterConfig;
 
@@ -59,6 +65,34 @@ public class Configuration implements IConfiguration {
 
     /** Spring Environment */
     private Environment environment;
+
+    /** Application Name */
+    private String appName;
+
+    /**
+     * 获取此服务的名称
+     *
+     * @return
+     */
+    @Override
+    public String getApplicationName() {
+        if (null == appName) {
+            appName = environment.getProperty("spring.application.name");
+            if (null == appName) {
+                throw new RuntimeException("spring.application.name is not configured,");
+            }
+        }
+        return this.appName;
+    }
+
+    @Override
+    public String getExposeIp() {
+        return exposeIp;
+    }
+
+    public void setExposeIp(String exposeIp) {
+        this.exposeIp = exposeIp;
+    }
 
     @Override
     public SerializeConfig getSerializeConfig() {
@@ -148,6 +182,26 @@ public class Configuration implements IConfiguration {
 
     public void setGlobalBreakerConfig(CircuitBreakerConfig globalBreakerConfig) {
         this.globalBreakerConfig = globalBreakerConfig;
+    }
+
+    @Override
+    public CircuitBreakerConfig getConnectionBreakerConfig() {
+        if (null == connectionBreakerConfig) {
+            this.connectionBreakerConfig = new CircuitBreakerConfig();
+            this.connectionBreakerConfig.setThreshold(
+                    ConstantValues.CONNECTION_CIRCUIT_BREAKER_THRESHOLD);
+            this.connectionBreakerConfig.setCheckIntervalSeconds(
+                    ConstantValues.CONNECTION_CIRCUIT_BREAKER_CHECK_INTERVAL_SECONDS);
+            this.connectionBreakerConfig.checkSelf();
+        }
+        return connectionBreakerConfig;
+    }
+
+    public void setConnectionBreakerConfig(CircuitBreakerConfig connectionBreakerConfig) {
+        if (null != connectionBreakerConfig) {
+            connectionBreakerConfig.checkSelf();
+            this.connectionBreakerConfig = connectionBreakerConfig;
+        }
     }
 
     public void setInterfaceBreakerConfigs(

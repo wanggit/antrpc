@@ -6,15 +6,8 @@ import org.springframework.core.env.Environment;
 @Slf4j
 public class ApplicationNameUtil {
 
-    public static String getApplicationName(Environment environment) {
-        String appName = environment.getProperty("spring.application.name");
-        if (null == appName) {
-            throw new RuntimeException("spring.application.name is not configured,");
-        }
-        return appName
-                + "@"
-                + NetUtil.getInstance().getLocalIp()
-                + ":"
-                + environment.getProperty("server.port");
+    public static String getApplicationName(
+            String exposeIp, String appName, Environment environment) {
+        return appName + "@" + exposeIp + ":" + environment.getProperty("server.port");
     }
 }

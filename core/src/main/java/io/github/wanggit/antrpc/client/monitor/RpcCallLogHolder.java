@@ -36,6 +36,9 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
         if (log.isInfoEnabled()) {
             log.info(JSONObject.toJSONString(rpcCallLog));
         }
+        if (null != logReporter.getConfiguration()) {
+            rpcCallLog.setAppName(logReporter.getConfiguration().getApplicationName());
+        }
         logReporter.report(rpcCallLog);
     }
 }

@@ -10,6 +10,9 @@ import java.io.Serializable;
 public class RpcCallLog implements Serializable {
 
     private static final long serialVersionUID = 3454659672745900232L;
+
+    private String appName;
+
     private String className;
 
     private String methodName;

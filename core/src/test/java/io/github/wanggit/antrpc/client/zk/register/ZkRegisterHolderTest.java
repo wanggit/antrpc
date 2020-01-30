@@ -43,7 +43,8 @@ public class ZkRegisterHolderTest {
                 new ZkRegisterHolder(
                         antrpcContext.getRegister(),
                         antrpcContext.getZkNodeBuilder(),
-                        antrpcContext.getZkClient());
+                        antrpcContext.getZkClient(),
+                        configuration);
         WaitUtil.wait(70, 2);
         RegisterBean registerBean = new RegisterBean();
         registerBean.setClassName(AInterface.class.getName());
@@ -61,21 +62,21 @@ public class ZkRegisterHolderTest {
                         .getZkClient()
                         .getCurator()
                         .getData()
-                        .forPath(registerBean.getZookeeperFullPath());
+                        .forPath(registerBean.getZookeeperFullPath(configuration.getExposeIp()));
         Assert.assertNotNull(bytes);
 
         antrpcContext
                 .getZkClient()
                 .getCurator()
                 .delete()
-                .forPath(registerBean.getZookeeperFullPath());
+                .forPath(registerBean.getZookeeperFullPath(configuration.getExposeIp()));
         WaitUtil.wait(70, 2);
         bytes =
                 antrpcContext
                         .getZkClient()
                         .getCurator()
                         .getData()
-                        .forPath(registerBean.getZookeeperFullPath());
+                        .forPath(registerBean.getZookeeperFullPath(configuration.getExposeIp()));
         Assert.assertNotNull(bytes);
     }
 

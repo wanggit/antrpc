@@ -2,7 +2,7 @@ package io.github.wanggit.antrpc.client.spring;
 
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.zk.register.Register;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
@@ -45,7 +45,7 @@ public class CglibMethodInterceptorTest {
         .getBeanFactory()
         .registerSingleton(IAntrpcContext.class.getName(), serverAntrpcContext);*/
         serverAntrpcContext.init(genericApplicationContext);
-        Register register = genericApplicationContext.getBean(Register.class);
+        IRegister register = genericApplicationContext.getBean(IRegister.class);
         ZkRegister zkRegister = (ZkRegister) register;
         zkRegister.postProcessBeforeInitialization(
                 genericApplicationContext.getBean(DogInterface.class),
@@ -252,7 +252,7 @@ public class CglibMethodInterceptorTest {
     private void setBeansToSpringContext(GenericApplicationContext applicationContext) {
         applicationContext
                 .getBeanFactory()
-                .registerSingleton(Register.class.getName(), new ZkRegister());
+                .registerSingleton(IRegister.class.getName(), new ZkRegister());
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());

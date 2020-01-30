@@ -82,9 +82,9 @@ public class ConnectionPool {
             return pool.borrowObject(timeout);
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
-                log.error("Failed to getId a connection from the connection pool.", e);
+                log.error("Failed to get a connection from the connection pool.", e);
             }
-            throw new RuntimeException(e);
+            throw new ConnectionNotBorrowedException(e);
         }
     }
 

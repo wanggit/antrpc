@@ -22,6 +22,9 @@ public class RpcClients implements IRpcClients {
             IConfiguration configuration,
             ICodecHolder codecHolder,
             ISerializerHolder serializerHolder) {
+        if (null == configuration || null == codecHolder || null == serializerHolder) {
+            throw new IllegalArgumentException();
+        }
         this.configuration = configuration;
         this.codecHolder = codecHolder;
         this.serializerHolder = serializerHolder;
@@ -41,7 +44,8 @@ public class RpcClients implements IRpcClients {
                                     codecHolder.getCodec(),
                                     codecConfig,
                                     rpcClientsConfig,
-                                    serializerHolder);
+                                    serializerHolder,
+                                    configuration.getConnectionBreakerConfig());
                     rpcClient.open(rpcClientsConfig.getConnectionTimeoutSeconds());
                     clients.put(key, rpcClient);
                 }

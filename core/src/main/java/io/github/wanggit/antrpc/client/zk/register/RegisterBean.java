@@ -1,8 +1,7 @@
 package io.github.wanggit.antrpc.client.zk.register;
 
-import io.github.wanggit.antrpc.commons.constants.ConstantValues;
-import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import com.alibaba.fastjson.JSONObject;
+import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 
@@ -19,11 +18,11 @@ public class RegisterBean {
 
     private Integer port;
 
-    String getZookeeperFullPath() {
+    String getZookeeperFullPath(String exposeIp) {
         return "/"
                 + ConstantValues.ZK_ROOT_NODE_NAME
                 + "/"
-                + NetUtil.getInstance().getLocalIp()
+                + exposeIp
                 + (null == port ? "" : ":" + port)
                 + "/"
                 + className;

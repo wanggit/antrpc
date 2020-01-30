@@ -14,6 +14,8 @@ public class KafkaLogReporter implements IKafkaLogReporter, ILogReporter {
 
     private boolean reportArgumentValues;
 
+    private IConfiguration configuration;
+
     @Override
     public void report(RpcCallLog log) {
         if (!reportArgumentValues) {
@@ -31,8 +33,14 @@ public class KafkaLogReporter implements IKafkaLogReporter, ILogReporter {
 
     @Override
     public void setConfiguration(IConfiguration configuration) {
+        this.configuration = configuration;
         CallLogReporterConfig callLogReporterConfig = configuration.getCallLogReporterConfig();
         this.topic = callLogReporterConfig.getKafkaTopic();
         this.reportArgumentValues = callLogReporterConfig.isReportArgumentValues();
+    }
+
+    @Override
+    public IConfiguration getConfiguration() {
+        return configuration;
     }
 }

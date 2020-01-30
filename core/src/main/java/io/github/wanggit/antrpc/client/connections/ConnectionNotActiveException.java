@@ -7,7 +7,7 @@ public class ConnectionNotActiveException extends RuntimeException {
     private static final long serialVersionUID = -1823350881797927678L;
     private Channel channel;
 
-    public ConnectionNotActiveException(Channel channel) {
+    ConnectionNotActiveException(Channel channel) {
         this.channel = channel;
     }
 
@@ -17,5 +17,9 @@ public class ConnectionNotActiveException extends RuntimeException {
 
     public ConnectionNotActiveException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public ConnectionNotActiveException(String message) {
+        super(message);
     }
 }

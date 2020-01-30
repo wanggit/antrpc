@@ -7,8 +7,8 @@ import io.github.wanggit.antrpc.client.spring.IOnFailHolder;
 import io.github.wanggit.antrpc.client.zk.IZkClient;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import io.github.wanggit.antrpc.client.zk.listener.Listener;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.IZkRegisterHolder;
-import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeBuilder;
 import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeKeeper;
@@ -78,7 +78,7 @@ public interface IAntrpcContext {
 
     IZkRegisterHolder getZkRegisterHolder();
 
-    Register getRegister();
+    IRegister getRegister();
 
     Listener getListener();
 

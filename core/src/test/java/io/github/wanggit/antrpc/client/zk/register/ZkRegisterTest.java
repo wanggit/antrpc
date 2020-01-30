@@ -9,7 +9,6 @@ import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
-import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class ZkRegisterTest {
                 .getBeanFactory()
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
         AInterface aInterface = new AImpl();
-        ZkRegister register = (ZkRegister) applicationContext.getBean(Register.class);
+        ZkRegister register = (ZkRegister) applicationContext.getBean(IRegister.class);
         register.postProcessBeforeInitialization(aInterface, "aInterface");
         antrpcContext.init(applicationContext);
 
@@ -50,7 +49,7 @@ public class ZkRegisterTest {
                 "/"
                         + ConstantValues.ZK_ROOT_NODE_NAME
                         + "/"
-                        + NetUtil.getInstance().getLocalIp()
+                        + configuration.getExposeIp()
                         + (null == rpcPort ? "" : ":" + rpcPort);
         byte[] bytes = antrpcContext.getZkClient().getCurator().getData().forPath(ipPath);
         Assert.assertNotNull(bytes);
@@ -59,7 +58,11 @@ public class ZkRegisterTest {
                 JSONObject.parseObject(json, RegisterBean.IpNodeDataBean.class);
         Assert.assertNotNull(ipNodeDataBean);
         Assert.assertEquals(
-                ApplicationNameUtil.getApplicationName(environment), ipNodeDataBean.getAppName());
+                ApplicationNameUtil.getApplicationName(
+                        configuration.getExposeIp(),
+                        configuration.getApplicationName(),
+                        environment),
+                ipNodeDataBean.getAppName());
         Assert.assertEquals(rpcPort, ipNodeDataBean.getRpcPort());
 
         IZkRegisterHolder zkRegisterHolder = antrpcContext.getZkRegisterHolder();
@@ -74,14 +77,17 @@ public class ZkRegisterTest {
         Assert.assertTrue(list.get(0) instanceof RegisterBean);
         RegisterBean registerBean = (RegisterBean) list.get(0);
         Assert.assertEquals(registerBean.getClassName(), AInterface.class.getName());
-        Assert.assertTrue(registerBean.getZookeeperFullPath().contains(AInterface.class.getName()));
+        Assert.assertTrue(
+                registerBean
+                        .getZookeeperFullPath(configuration.getExposeIp())
+                        .contains(AInterface.class.getName()));
 
         byte[] nodeData =
                 antrpcContext
                         .getZkClient()
                         .getCurator()
                         .getData()
-                        .forPath(registerBean.getZookeeperFullPath());
+                        .forPath(registerBean.getZookeeperFullPath(configuration.getExposeIp()));
         Assert.assertNotNull(nodeData);
         json = new String(nodeData, Charset.forName("UTF-8"));
         RegisterBean.InterfaceNodeDataBean interfaceNodeDataBean =
@@ -92,7 +98,7 @@ public class ZkRegisterTest {
                 .getZkClient()
                 .getCurator()
                 .delete()
-                .forPath(registerBean.getZookeeperFullPath());
+                .forPath(registerBean.getZookeeperFullPath(configuration.getExposeIp()));
     }
 
     @RpcService

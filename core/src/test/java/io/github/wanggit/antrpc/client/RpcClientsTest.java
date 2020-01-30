@@ -6,7 +6,7 @@ import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.register.Register;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
@@ -331,7 +331,7 @@ public class RpcClientsTest {
                 .registerSingleton(AntrpcContext.class.getName(), clientAntrpcContext);
         clientApplicationContext
                 .getBeanFactory()
-                .registerSingleton(Register.class.getName(), new ZkRegister());
+                .registerSingleton(IRegister.class.getName(), new ZkRegister());
         clientApplicationContext
                 .getBeanFactory()
                 .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
@@ -379,7 +379,7 @@ public class RpcClientsTest {
                 .registerSingleton(AntrpcContext.class.getName(), antrpcContext);
         genericApplicationContext
                 .getBeanFactory()
-                .registerSingleton(Register.class.getName(), new ZkRegister());
+                .registerSingleton(IRegister.class.getName(), new ZkRegister());
         genericApplicationContext
                 .getBeanFactory()
                 .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
@@ -394,7 +394,12 @@ public class RpcClientsTest {
         configuration.setEnvironment(environment);
         antrpcContext.init(genericApplicationContext);
         for (RegisterBean registerBean : registerBeans) {
-            antrpcContext.getRegister().register(registerBean, antrpcContext.getZkNodeBuilder());
+            antrpcContext
+                    .getRegister()
+                    .register(
+                            registerBean,
+                            antrpcContext.getZkNodeBuilder(),
+                            configuration.getExposeIp());
         }
     }
 

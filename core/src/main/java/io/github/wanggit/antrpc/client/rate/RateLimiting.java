@@ -1,7 +1,7 @@
 package io.github.wanggit.antrpc.client.rate;
 
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
-import org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
+import io.github.wanggit.antrpc.commons.org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;

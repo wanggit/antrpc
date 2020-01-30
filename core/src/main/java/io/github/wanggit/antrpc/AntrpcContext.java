@@ -11,8 +11,8 @@ import io.github.wanggit.antrpc.client.zk.ZkClient;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import io.github.wanggit.antrpc.client.zk.listener.Listener;
 import io.github.wanggit.antrpc.client.zk.listener.ZkListener;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.IZkRegisterHolder;
-import io.github.wanggit.antrpc.client.zk.register.Register;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegisterHolder;
 import io.github.wanggit.antrpc.client.zk.zknode.*;
 import io.github.wanggit.antrpc.commons.IRpcClients;
@@ -22,7 +22,9 @@ import io.github.wanggit.antrpc.commons.codec.cryption.CodecHolder;
 import io.github.wanggit.antrpc.commons.codec.cryption.ICodecHolder;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.codec.serialize.SerializerHolder;
+import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
+import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import io.github.wanggit.antrpc.server.IServer;
 import io.github.wanggit.antrpc.server.RpcServer;
 import io.github.wanggit.antrpc.server.exception.RpcServerStartErrorException;
@@ -60,7 +62,7 @@ public class AntrpcContext implements IAntrpcContext {
 
     private AtomicBoolean inited = new AtomicBoolean(false);
 
-    private Register register;
+    private IRegister register;
 
     private IServer server;
 
@@ -152,7 +154,7 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     @Override
-    public Register getRegister() {
+    public IRegister getRegister() {
         return register;
     }
 
@@ -185,6 +187,7 @@ public class AntrpcContext implements IAntrpcContext {
     public void init(ConfigurableApplicationContext applicationContext) {
         if (inited.compareAndSet(false, true)) {
             long start = System.currentTimeMillis();
+            this.initExposedIp(configuration);
             this.initRpcRequestBeanInvoker(applicationContext);
             this.initRpcCallLogHolder(applicationContext, configuration);
             this.rateLimiting = new RateLimiting();
@@ -195,7 +198,7 @@ public class AntrpcContext implements IAntrpcContext {
             this.initNodeHostContainer(configuration, loadBalancerHelper);
             this.initZkNodeBuilder(zkClient, nodeHostContainer);
             this.initZkNodeKeeper(applicationContext, zkClient, zkNodeBuilder);
-            this.initZkRegisterHolder(register, zkNodeBuilder, zkClient);
+            this.initZkRegisterHolder(applicationContext, zkNodeBuilder, zkClient, configuration);
             this.initListener(applicationContext, zkClient, zkRegisterHolder, zkNodeBuilder);
             this.initRegister(applicationContext, zkNodeBuilder, zkRegisterHolder, configuration);
             this.initCircuitBreaker(configuration);
@@ -225,8 +228,17 @@ public class AntrpcContext implements IAntrpcContext {
         this.server.close();
     }
 
+    private void initExposedIp(IConfiguration configuration) {
+        if (null == configuration.getExposeIp()) {
+            ((Configuration) configuration).setExposeIp(NetUtil.getLocalIp());
+        }
+    }
+
     private void initRpcAutowiredProcessor(
             ConfigurableApplicationContext applicationContext, BeanContainer beanContainer) {
+        if (null == beanContainer) {
+            throw new IllegalArgumentException();
+        }
         IRpcAutowiredProcessor rpcAutowiredProcessor =
                 applicationContext.getBean(IRpcAutowiredProcessor.class);
         rpcAutowiredProcessor.init(beanContainer);
@@ -234,6 +246,9 @@ public class AntrpcContext implements IAntrpcContext {
 
     private void initOnFailProcessor(
             ConfigurableApplicationContext applicationContext, IOnFailHolder onFailHolder) {
+        if (null == onFailHolder) {
+            throw new IllegalArgumentException();
+        }
         IOnFailProcessor onFailProcessor = applicationContext.getBean(IOnFailProcessor.class);
         onFailProcessor.init(onFailHolder);
     }
@@ -242,6 +257,9 @@ public class AntrpcContext implements IAntrpcContext {
             ConfigurableApplicationContext applicationContext,
             IZkClient zkClient,
             IZkNodeBuilder zkNodeBuilder) {
+        if (null == zkClient || null == zkNodeBuilder) {
+            throw new IllegalArgumentException();
+        }
         this.zkNodeKeeper = new ZkNodeKeeper(zkClient, zkNodeBuilder);
         applicationContext
                 .getBeanFactory()
@@ -254,6 +272,9 @@ public class AntrpcContext implements IAntrpcContext {
             IZkClient zkClient,
             IZkRegisterHolder zkRegisterHolder,
             IZkNodeBuilder zkNodeBuilder) {
+        if (null == zkClient || null == zkRegisterHolder || null == zkNodeBuilder) {
+            throw new IllegalArgumentException();
+        }
         this.listener = new ZkListener(zkClient, zkRegisterHolder, zkNodeBuilder);
         this.listener.listen();
         applicationContext
@@ -270,7 +291,10 @@ public class AntrpcContext implements IAntrpcContext {
             IZkNodeBuilder zkNodeBuilder,
             IZkRegisterHolder zkRegisterHolder,
             IConfiguration configuration) {
-        register = applicationContext.getBean(Register.class);
+        if (null == zkNodeBuilder || null == zkRegisterHolder || null == configuration) {
+            throw new IllegalArgumentException();
+        }
+        register = applicationContext.getBean(IRegister.class);
         register.init(zkNodeBuilder, zkRegisterHolder, configuration);
     }
 
@@ -282,6 +306,15 @@ public class AntrpcContext implements IAntrpcContext {
             IRpcClients rpcClients,
             ISerializerHolder serializerHolder,
             INodeHostContainer nodeHostContainer) {
+        if (null == rateLimiting
+                || null == rpcCallLogHolder
+                || null == onFailHolder
+                || null == circuitBreaker
+                || null == rpcClients
+                || null == serializerHolder
+                || null == nodeHostContainer) {
+            throw new IllegalArgumentException();
+        }
         this.beanContainer =
                 new RpcBeanContainer(
                         rateLimiting,
@@ -294,10 +327,16 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initCircuitBreaker(IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         this.circuitBreaker = new CircuitBreaker(configuration);
     }
 
     private void initSerializerHolder(IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         try {
             this.serializerHolder = new SerializerHolder(configuration);
         } catch (Exception e) {
@@ -309,6 +348,9 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initCodecHolder(IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         try {
             this.codecHolder = new CodecHolder(configuration.getCodecConfig());
         } catch (Exception e) {
@@ -318,30 +360,56 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initZkRegisterHolder(
-            Register register, IZkNodeBuilder zkNodeBuilder, IZkClient zkClient) {
-        this.zkRegisterHolder = new ZkRegisterHolder(register, zkNodeBuilder, zkClient);
+            ApplicationContext applicationContext,
+            IZkNodeBuilder zkNodeBuilder,
+            IZkClient zkClient,
+            IConfiguration configuration) {
+        if (null == zkNodeBuilder || null == zkClient || null == configuration) {
+            throw new IllegalArgumentException();
+        }
+        this.zkRegisterHolder =
+                new ZkRegisterHolder(
+                        applicationContext.getBean(IRegister.class),
+                        zkNodeBuilder,
+                        zkClient,
+                        configuration);
     }
 
     private void initZkNodeBuilder(IZkClient zkClient, INodeHostContainer nodeHostContainer) {
+        if (null == zkClient || null == nodeHostContainer) {
+            throw new IllegalArgumentException();
+        }
         this.zkNodeBuilder = new ZkNodeBuilder(zkClient.getCurator(), nodeHostContainer);
     }
 
     private void initNodeHostContainer(
             IConfiguration configuration, LoadBalancerHelper loadBalancerHelper) {
+        if (null == configuration || null == loadBalancerHelper) {
+            throw new IllegalArgumentException();
+        }
         this.nodeHostContainer =
                 new NodeHostContainer(loadBalancerHelper, configuration.getDirectHosts());
     }
 
     private void initLoadBalancerHelper(IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         loadBalancerHelper = new LoadBalancerHelper(configuration);
     }
 
     private void initZkClient(IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         zkClient = new ZkClient(configuration);
     }
 
     private void initRpcCallLogHolder(
             ApplicationContext applicationContext, IConfiguration configuration) {
+        if (null == configuration) {
+            throw new IllegalArgumentException();
+        }
         try {
             rpcCallLogHolder = new RpcCallLogHolder(configuration, applicationContext);
         } catch (Exception e) {
@@ -360,6 +428,12 @@ public class AntrpcContext implements IAntrpcContext {
             ICodecHolder codecHolder,
             IRpcRequestBeanInvoker rpcRequestBeanInvoker,
             ISerializerHolder serializerHolder) {
+        if (null == configuration
+                || null == codecHolder
+                || null == rpcRequestBeanInvoker
+                || null == serializerHolder) {
+            throw new IllegalArgumentException();
+        }
         if (configuration.isStartServer()) {
             this.server =
                     new RpcServer(

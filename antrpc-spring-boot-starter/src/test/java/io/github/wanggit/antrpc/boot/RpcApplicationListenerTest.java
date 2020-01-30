@@ -2,7 +2,7 @@ package io.github.wanggit.antrpc.boot;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.zk.register.Register;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.commons.config.CallLogReporterConfig;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
@@ -124,7 +124,7 @@ public class RpcApplicationListenerTest {
         ContextRefreshedEvent contextRefreshedEvent =
                 new ContextRefreshedEvent(genericApplicationContext);
         rpcApplicationListener.onApplicationEvent(contextRefreshedEvent);
-        Register register = genericApplicationContext.getBean(Register.class);
+        IRegister register = genericApplicationContext.getBean(IRegister.class);
         Assert.assertNotNull(register);
 
         // 8 ApplicationReadyEvent

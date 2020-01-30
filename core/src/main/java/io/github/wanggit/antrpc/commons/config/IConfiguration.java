@@ -7,6 +7,10 @@ import java.util.Map;
 
 public interface IConfiguration {
 
+    String getApplicationName();
+
+    String getExposeIp();
+
     SerializeConfig getSerializeConfig();
 
     CodecConfig getCodecConfig();
@@ -18,6 +22,8 @@ public interface IConfiguration {
     Environment getEnvironment();
 
     Map<String, DirectNodeHostEntity> getDirectHosts();
+
+    CircuitBreakerConfig getConnectionBreakerConfig();
 
     boolean isStartServer();
 

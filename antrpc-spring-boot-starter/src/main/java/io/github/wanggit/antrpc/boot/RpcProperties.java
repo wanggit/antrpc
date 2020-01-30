@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Data
 @ConfigurationProperties(prefix = ConstantValues.ANTRPC_CONFIG_PREFIX)
-public class RpcProperties {
+class RpcProperties {
 
     private String zkServers = "localhost:2181";
 
@@ -21,8 +21,13 @@ public class RpcProperties {
 
     private boolean startServer = true;
 
+    private String exposedIp;
+
     /** global circuit breaker */
     @NestedConfigurationProperty private CircuitBreakerConfig circuitBreakers;
+
+    /** connection circuit breaker */
+    @NestedConfigurationProperty private CircuitBreakerConfig connectionBreakerConfig;
 
     @NestedConfigurationProperty private CallLogReporterConfig callLogReporterConfig;
 

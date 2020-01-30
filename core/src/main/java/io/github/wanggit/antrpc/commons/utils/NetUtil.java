@@ -6,26 +6,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @Slf4j
-public class NetUtil {
+public abstract class NetUtil {
 
-    private String localIp = null;
-    private static NetUtil instance = new NetUtil();
-
-    private NetUtil() {
-        if (null == localIp) {
-            localIp = initLocalIp();
-        }
-    }
-
-    public static NetUtil getInstance() {
-        return instance;
-    }
-
-    public String getLocalIp() {
-        return localIp;
-    }
-
-    private static String initLocalIp() {
+    public static String getLocalIp() {
         try {
             InetAddress inetAddress = InetAddress.getLocalHost();
             return inetAddress.getHostAddress();

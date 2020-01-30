@@ -38,6 +38,9 @@ public interface ConstantValues {
     /** 默认发送日志的Topic */
     String CALL_LOG_KAFKA_TOPIC = "antrpc_call_log";
 
-    /** 默认发送监控指标的Topic */
-    String METRICS_KAFKA_TOPIC = "antrpc_metrics";
+    /** 服务之间连接的熔断器阀值，表示10秒内出现5次连接断开，就打开熔断器 */
+    int CONNECTION_CIRCUIT_BREAKER_THRESHOLD = 8;
+
+    /** 服务之间连接的熔断器状态检查时间周期，表示10秒内出现5次连接断开，就打开熔断器 */
+    int CONNECTION_CIRCUIT_BREAKER_CHECK_INTERVAL_SECONDS = 20;
 }

@@ -8,4 +8,6 @@ public interface ILogReporter {
     void report(RpcCallLog log);
 
     void setConfiguration(IConfiguration configuration);
+
+    IConfiguration getConfiguration();
 }

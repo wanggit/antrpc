@@ -7,7 +7,7 @@ import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
 import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.register.Register;
+import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.DirectNodeHostEntity;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
@@ -129,8 +129,8 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
         if (!beanFactory.containsBean(IOnFailProcessor.class.getName())) {
             beanFactory.registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
         }
-        if (!beanFactory.containsBean(Register.class.getName())) {
-            beanFactory.registerSingleton(Register.class.getName(), new ZkRegister());
+        if (!beanFactory.containsBean(IRegister.class.getName())) {
+            beanFactory.registerSingleton(IRegister.class.getName(), new ZkRegister());
         }
         if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
             beanFactory.registerSingleton(ANTRPC_CONTEXT_BEAN_NAME, context);
@@ -168,6 +168,7 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
                 null == rpcProperties.getPort()
                         ? ConstantValues.RPC_DEFAULT_PORT
                         : rpcProperties.getPort());
+        configuration.setExposeIp(rpcProperties.getExposedIp());
         String loadBalancer = rpcProperties.getLoadBalancer();
         if (null != loadBalancer) {
             try {
@@ -191,6 +192,7 @@ public class RpcApplicationListener implements ApplicationListener<ApplicationEv
         }
         configuration.setStartServer(rpcProperties.isStartServer());
         configuration.setGlobalBreakerConfig(rpcProperties.getCircuitBreakers());
+        configuration.setConnectionBreakerConfig(rpcProperties.getConnectionBreakerConfig());
         configuration.setCallLogReporterConfig(rpcProperties.getCallLogReporterConfig());
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
         configuration.setCodecConfig(rpcProperties.getCodecConfig());

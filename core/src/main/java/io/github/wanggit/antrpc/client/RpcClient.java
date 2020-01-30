@@ -10,8 +10,10 @@ import io.github.wanggit.antrpc.commons.codec.RpcProtocolDecoder;
 import io.github.wanggit.antrpc.commons.codec.RpcProtocolEncoder;
 import io.github.wanggit.antrpc.commons.codec.cryption.ICodec;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
+import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.CodecConfig;
 import io.github.wanggit.antrpc.commons.config.RpcClientsConfig;
+import io.github.wanggit.antrpc.commons.org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 import io.github.wanggit.antrpc.commons.utils.EpollUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -21,6 +23,9 @@ import io.netty.channel.MultithreadEventLoopGroup;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class RpcClient implements IClient {
@@ -34,17 +39,26 @@ public class RpcClient implements IClient {
     private CodecConfig codecConfig;
     private ICodec codec;
     private ISerializerHolder serializerHolder;
+    private EventCountCircuitBreaker eventCountCircuitBreaker;
+    private CircuitBreakerConfig circuitBreakerConfig;
 
     RpcClient(
             Host host,
             ICodec codec,
             CodecConfig codecConfig,
             RpcClientsConfig rpcClientsConfig,
-            ISerializerHolder serializerHolder) {
+            ISerializerHolder serializerHolder,
+            CircuitBreakerConfig circuitBreakerConfig) {
         this.host = host;
         this.codec = codec;
         this.codecConfig = codecConfig;
         this.serializerHolder = serializerHolder;
+        this.circuitBreakerConfig = circuitBreakerConfig;
+        this.eventCountCircuitBreaker =
+                new EventCountCircuitBreaker(
+                        circuitBreakerConfig.getThreshold(),
+                        circuitBreakerConfig.getCheckIntervalSeconds(),
+                        TimeUnit.SECONDS);
         config = new GenericObjectPoolConfig<>();
         config.setMaxTotal(rpcClientsConfig.getMaxTotal());
         config.setMinIdle(rpcClientsConfig.getMinIdle());
@@ -93,12 +107,17 @@ public class RpcClient implements IClient {
     public ReadClientFuture send(RpcProtocol rpcProtocol) {
         Connection connection = null;
         try {
+            connection = getConnection();
             ReadClientFuture future =
                     ReadClientFutureHolder.createFuture(
                             rpcProtocol.getCmdId(), serializerHolder.getSerializer());
-            connection = connectionPool.borrow();
             connection.send(rpcProtocol);
             return future;
+        } catch (ConnectionNotBorrowedException be) {
+            if (log.isErrorEnabled()) {
+                log.error("Unable to establish connection. Remote server may not be started.", be);
+            }
+            throw new ConnectionNotActiveException("Unable to establish connection.", be);
         } catch (ConnectionNotActiveException ce) {
             if (log.isErrorEnabled()) {
                 log.error("Connection not alive, send error." + ce.getChannel().toString());
@@ -123,8 +142,13 @@ public class RpcClient implements IClient {
     public void oneway(RpcProtocol rpcProtocol) {
         Connection connection = null;
         try {
-            connection = connectionPool.borrow();
+            connection = getConnection();
             connection.send(rpcProtocol);
+        } catch (ConnectionNotBorrowedException be) {
+            if (log.isErrorEnabled()) {
+                log.error("Unable to establish connection. Remote server may not be started.");
+            }
+            throw new ConnectionNotActiveException("Unable to establish connection.", be);
         } catch (ConnectionNotActiveException ce) {
             if (log.isErrorEnabled()) {
                 log.error("Connection not alive, send error.");
@@ -142,6 +166,63 @@ public class RpcClient implements IClient {
                 }
             }
         }
+    }
+
+    private void printEventCountCircuitBreakerState() {
+        AtomicReference<EventCountCircuitBreaker.CheckIntervalData> checkIntervalDataRef =
+                eventCountCircuitBreaker.getCheckIntervalData();
+        EventCountCircuitBreaker.CheckIntervalData intervalData = checkIntervalDataRef.get();
+        if (log.isInfoEnabled()) {
+            log.info(
+                    "EventCountCircuitBreaker.CheckIntervalData eventCount="
+                            + intervalData.getEventCount()
+                            + ", checkIntervalStart="
+                            + intervalData.getCheckIntervalStart());
+        }
+    }
+
+    private Connection getConnection() {
+        Connection connection = null;
+        if (eventCountCircuitBreaker.checkState()) {
+            try {
+                connection = connectionPool.borrow();
+            } catch (Exception e) {
+                eventCountCircuitBreaker.incrementAndCheckState();
+                throw e;
+            }
+        }
+        if (null == connection) {
+            if (log.isErrorEnabled()) {
+                log.error(
+                        "Connection Circuit Breaker was opened, error "
+                                + this.circuitBreakerConfig.getThreshold()
+                                + " times in "
+                                + this.circuitBreakerConfig.getCheckIntervalSeconds()
+                                + " seconds");
+            }
+            // Try to recover when the state is near
+            if (eventCountCircuitBreaker.checkNearBy()) {
+                if (log.isInfoEnabled()) {
+                    log.info("The Circuit Breaker has reached the near state. Attempt to restore.");
+                }
+                try {
+                    connection = connectionPool.borrow();
+                    if (log.isInfoEnabled()) {
+                        log.info("We've recovered. The Circuit Breaker is off.");
+                    }
+                    eventCountCircuitBreaker.close();
+                } catch (Exception e) {
+                    if (log.isInfoEnabled()) {
+                        log.info("Recovery failed, The Circuit Breaker restarted.");
+                    }
+                    eventCountCircuitBreaker.open();
+                    throw e;
+                }
+            } else {
+                throw new ConnectionNotActiveException("Connection Circuit Breaker was opened.");
+            }
+        }
+        return connection;
     }
 
     @Override

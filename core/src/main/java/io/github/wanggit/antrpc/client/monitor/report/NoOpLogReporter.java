@@ -9,4 +9,9 @@ public class NoOpLogReporter implements ILogReporter {
 
     @Override
     public void setConfiguration(IConfiguration configuration) {}
+
+    @Override
+    public IConfiguration getConfiguration() {
+        return null;
+    }
 }

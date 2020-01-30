@@ -9,4 +9,10 @@ public interface ICircuitBreaker {
     boolean checkState(String className, String callLogKey);
 
     boolean increament(String key);
+
+    boolean checkNearBy(String key);
+
+    void close(String key);
+
+    void open(String key);
 }

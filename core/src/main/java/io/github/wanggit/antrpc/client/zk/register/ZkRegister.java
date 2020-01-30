@@ -8,7 +8,6 @@ import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.constants.Constants;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
-import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
@@ -25,14 +24,14 @@ import java.util.List;
 
 /** Register all services identified by @RpcService as RPC services */
 @Slf4j
-public class ZkRegister implements Register, BeanPostProcessor {
+public class ZkRegister implements IRegister, BeanPostProcessor {
 
     private final List<RegisterBean> registerBeans = new ArrayList<>();
 
     /** */
     @Override
-    public void register(RegisterBean registerBean, IZkNodeBuilder zkNodeBuilder) {
-        String zkFullpath = registerBean.getZookeeperFullPath();
+    public void register(RegisterBean registerBean, IZkNodeBuilder zkNodeBuilder, String exposeIp) {
+        String zkFullpath = registerBean.getZookeeperFullPath(exposeIp);
         byte[] nodeData = registerBean.getNodeData();
         zkNodeBuilder.remoteCreateZkNode(zkFullpath, nodeData, CreateMode.EPHEMERAL);
     }
@@ -106,11 +105,14 @@ public class ZkRegister implements Register, BeanPostProcessor {
                 "/"
                         + ConstantValues.ZK_ROOT_NODE_NAME
                         + "/"
-                        + NetUtil.getInstance().getLocalIp()
+                        + configuration.getExposeIp()
                         + (null == rpcPort ? "" : ":" + rpcPort);
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();
         ipNodeDataBean.setAppName(
-                ApplicationNameUtil.getApplicationName(configuration.getEnvironment()));
+                ApplicationNameUtil.getApplicationName(
+                        configuration.getExposeIp(),
+                        configuration.getApplicationName(),
+                        configuration.getEnvironment()));
         ipNodeDataBean.setTs(System.currentTimeMillis());
         ipNodeDataBean.setRpcPort(rpcPort);
         ipNodeDataBean.setHttpPort(
@@ -122,7 +124,7 @@ public class ZkRegister implements Register, BeanPostProcessor {
         for (RegisterBean registerBean : registerBeans) {
             registerBean.setPort(rpcPort);
             zkRegisterHolder.add(registerBean);
-            register(registerBean, zkNodeBuilder);
+            register(registerBean, zkNodeBuilder, configuration.getExposeIp());
         }
     }
 }

@@ -2,7 +2,6 @@ package io.github.wanggit.antrpc.client.spring;
 
 import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.RpcClient;
-import io.github.wanggit.antrpc.client.connections.ConnectionNotActiveException;
 import io.github.wanggit.antrpc.client.future.ReadClientFuture;
 import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
 import io.github.wanggit.antrpc.client.rate.IRateLimiting;
@@ -98,33 +97,24 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             RpcProtocol rpcProtocol = createRpcProtocol(rpcRequestBean);
             // 调用日志 RpcCallLog
             hostEntity = chooseNodeHostEntity(className);
-            if (circuitBreaker.checkState(getCallLogKey(rpcRequestBean, hostEntity), className)) {
-                ReadClientFuture future = null;
-                try {
-                    future = internalSend(rpcProtocol, hostEntity);
-                } catch (ConnectionNotActiveException cnae) {
-                    // 默认重试一次
-                    hostEntity = chooseNodeHostEntity(className);
-                    future = internalSend(rpcProtocol, hostEntity);
-                }
-                RpcResponseBean rpcResponseBean =
-                        getRpcResponseBean(circuitBreaker, future, hostEntity, rpcRequestBean);
-                if (null == rpcResponseBean) {
-                    throw new ResultWasNullException("result is null.");
-                }
-                Object result = rpcResponseBean.getResult();
-                if (result instanceof RpcResponseError) {
-                    throw new ServiceProviderOccurredException(
-                            ((RpcResponseError) result).getMessage());
-                }
-                rpcCallLog.setIp(hostEntity.getIp());
-                rpcCallLog.setPort(hostEntity.getPort());
-                rpcCallLog.setRequestId(rpcRequestBean.getId());
-                rpcCallLog.setEnd(System.currentTimeMillis());
-                rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
-                rpcCallLogHolder.log(rpcCallLog);
-                return rpcResponseBean.getResult();
+            String key = getCallLogKey(rpcRequestBean, hostEntity);
+            if (circuitBreaker.checkState(className, key)) {
+                return doInternalSendWhenCircuitBreakerClosed(
+                        hostEntity, rpcRequestBean, rpcCallLog, rpcProtocol);
             } else {
+                if (circuitBreaker.checkNearBy(key)) {
+                    try {
+                        Object result =
+                                doInternalSendWhenCircuitBreakerClosed(
+                                        hostEntity, rpcRequestBean, rpcCallLog, rpcProtocol);
+                        circuitBreaker.close(key);
+                        return result;
+                    } catch (Exception e) {
+                        circuitBreaker.open(key);
+                        throw e;
+                    }
+                }
+
                 CircuitBreakerConfig breaker = circuitBreaker.getInterfaceCircuitBreaker(className);
                 String message = null;
                 if (null == breaker) {
@@ -159,9 +149,40 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             if (throwable instanceof ServiceProviderOccurredException) {
                 // 服务提供者发生了异常
                 circuitBreaker.increament(getCallLogKey(rpcRequestBean, hostEntity));
+                if (log.isErrorEnabled()) {
+                    log.error(
+                            "An exception occurred from the service provider. ["
+                                    + throwable.getMessage()
+                                    + "]",
+                            throwable);
+                }
             }
         }
         return null;
+    }
+
+    private Object doInternalSendWhenCircuitBreakerClosed(
+            NodeHostEntity hostEntity,
+            RpcRequestBean rpcRequestBean,
+            RpcCallLog rpcCallLog,
+            RpcProtocol rpcProtocol) {
+        ReadClientFuture future = internalSend(rpcProtocol, hostEntity);
+        RpcResponseBean rpcResponseBean =
+                getRpcResponseBean(circuitBreaker, future, hostEntity, rpcRequestBean);
+        if (null == rpcResponseBean) {
+            throw new ResultWasNullException("result is null.");
+        }
+        Object result = rpcResponseBean.getResult();
+        if (result instanceof RpcResponseError) {
+            throw new ServiceProviderOccurredException(((RpcResponseError) result).getMessage());
+        }
+        rpcCallLog.setIp(hostEntity.getIp());
+        rpcCallLog.setPort(hostEntity.getPort());
+        rpcCallLog.setRequestId(rpcRequestBean.getId());
+        rpcCallLog.setEnd(System.currentTimeMillis());
+        rpcCallLog.setRt(rpcCallLog.getEnd() - rpcCallLog.getStart());
+        rpcCallLogHolder.log(rpcCallLog);
+        return rpcResponseBean.getResult();
     }
 
     private String getCallLogKey(RpcRequestBean rpcRequestBean, NodeHostEntity hostEntity) {

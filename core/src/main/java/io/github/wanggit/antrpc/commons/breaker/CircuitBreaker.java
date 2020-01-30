@@ -2,8 +2,8 @@ package io.github.wanggit.antrpc.commons.breaker;
 
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
+import io.github.wanggit.antrpc.commons.org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,14 +84,47 @@ public final class CircuitBreaker implements ICircuitBreaker {
     }
 
     @Override
+    public boolean checkNearBy(String key) {
+        synchronized (key.intern()) {
+            EventCountCircuitBreaker eventCountCircuitBreaker = breakerMap.get(key);
+            if (null == eventCountCircuitBreaker) {
+                return false;
+            }
+            return eventCountCircuitBreaker.checkNearBy();
+        }
+    }
+
+    @Override
+    public void close(String key) {
+        synchronized (key.intern()) {
+            EventCountCircuitBreaker eventCountCircuitBreaker = breakerMap.get(key);
+            if (null != eventCountCircuitBreaker) {
+                eventCountCircuitBreaker.close();
+            }
+        }
+    }
+
+    @Override
+    public void open(String key) {
+        synchronized (key.intern()) {
+            EventCountCircuitBreaker eventCountCircuitBreaker = breakerMap.get(key);
+            if (null != eventCountCircuitBreaker) {
+                eventCountCircuitBreaker.open();
+            }
+        }
+    }
+
+    @Override
     public boolean increament(String key) {
         if (null == key) {
             throw new IllegalArgumentException("key cannot be null.");
         }
-        if (null == breakerMap.get(key)) {
+        if (!breakerMap.containsKey(key)) {
             return true;
         }
-        return breakerMap.get(key).incrementAndCheckState();
+        synchronized (key.intern()) {
+            return breakerMap.get(key).incrementAndCheckState();
+        }
     }
 
     public static class BreakedException extends Exception {
