@@ -36,15 +36,14 @@ http://curator.apache.org/zk-compatibility.html
 ```
 经测试兼容zookeeper 3.4.5版本
 
-spring-boot 测试过2.0.3.RELEASE与2.2.0.RELEASE两个版本
 
 ### 版本兼容表
-| AntRpc        | Spring Boot | Spring Kafka  | curator-recipes | zookeeper |       |
-|:--------------|:------------|:--------------|:----------------|:----------|:------|
-| 2.0.0.RELEASE | 2.0.0.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
-| 2.0.0.RELEASE | 2.0.1.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
-| 2.0.0.RELEASE | 2.0.2.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
-| 2.0.0.RELEASE | 2.0.3.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
-| 2.0.0.RELEASE | 2.0.4.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
+| AntRpc        | Spring Boot | Spring Kafka  | curator-recipes | zookeeper |
+|:--------------|:------------|:--------------|:----------------|:----------|
+| 2.0.0.RELEASE | 2.0.0.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
+| 2.0.0.RELEASE | 2.0.1.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
+| 2.0.0.RELEASE | 2.0.2.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
+| 2.0.0.RELEASE | 2.0.3.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
+| 2.0.0.RELEASE | 2.0.4.RELEASE | 2.1.4.RELEASE   | 2.13.0    | 3.4.8 |
 
 
