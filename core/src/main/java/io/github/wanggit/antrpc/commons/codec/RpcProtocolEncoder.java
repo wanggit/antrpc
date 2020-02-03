@@ -31,8 +31,8 @@ public class RpcProtocolEncoder extends MessageToByteEncoder<RpcProtocol> {
             out.writeInt(msg.getData().length);
             out.writeBytes(msg.getData());
         } else {
-            boolean wasCodec = null != codecConfig && codecConfig.isEnable();
-            if (wasCodec) {
+            boolean codecEnabled = null != codecConfig && codecConfig.isEnable();
+            if (codecEnabled) {
                 msg.setCodec(ConstantValues.CODECED);
                 msg.setData(codec.encrypt(msg.getData()));
             } else {

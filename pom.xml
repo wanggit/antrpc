@@ -75,7 +75,7 @@
     </distributionManagement>
 
     <properties>
-        <spring-boot.version>2.0.0.RELEASE</spring-boot.version>
+        <spring-boot.version>2.0.5.RELEASE</spring-boot.version>
         <antrpc-core.version>2.0.0.RELEASE</antrpc-core.version>
 
         <spring-kafka.version>2.1.4.RELEASE</spring-kafka.version>
