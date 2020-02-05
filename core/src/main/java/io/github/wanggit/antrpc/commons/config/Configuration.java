@@ -72,7 +72,7 @@ public class Configuration implements IConfiguration {
     /**
      * 获取此服务的名称
      *
-     * @return
+     * @return Application Name
      */
     @Override
     public String getApplicationName() {

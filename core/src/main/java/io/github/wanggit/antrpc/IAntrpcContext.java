@@ -40,35 +40,35 @@ public interface IAntrpcContext {
     /**
      * 获取接口频控管理器
      *
-     * @return
+     * @return 频控管理器
      */
     IRateLimiting getRateLimiting();
 
     /**
      * 获取RpcClients
      *
-     * @return
+     * @return RpcClients
      */
     IRpcClients getRpcClients();
 
     /**
      * 获取Cglib对象的容器
      *
-     * @return
+     * @return Cglib动态对象的容器
      */
     BeanContainer getBeanContainer();
 
     /**
      * 获取配置对象
      *
-     * @return
+     * @return 配置对象
      */
     IConfiguration getConfiguration();
 
     /**
      * 获取熔断器
      *
-     * @return
+     * @return 熔断器
      */
     ICircuitBreaker getCircuitBreaker();
 
@@ -93,7 +93,7 @@ public interface IAntrpcContext {
     /**
      * 初始化, 再设置完 Configuration 之后再进行初始化
      *
-     * @param applicationContext
+     * @param applicationContext Spring应用上下文
      */
     void init(ConfigurableApplicationContext applicationContext);
 }

@@ -42,9 +42,9 @@ public class ZkNodeBuilder implements IZkNodeBuilder {
     /**
      * 在zk服务器上创建节点
      *
-     * @param zkFullpath
-     * @param nodeData
-     * @param createMode
+     * @param zkFullpath 节点全路径
+     * @param nodeData 节点数据
+     * @param createMode 节点类型
      */
     @Override
     public void remoteCreateZkNode(String zkFullpath, byte[] nodeData, CreateMode createMode) {

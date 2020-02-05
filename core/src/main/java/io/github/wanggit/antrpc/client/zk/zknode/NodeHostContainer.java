@@ -164,11 +164,6 @@ public final class NodeHostContainer implements INodeHostContainer {
         }
     }
 
-    /**
-     * @param values
-     * @param nodeHostEntity
-     * @return return -1 if not found.
-     */
     @Override
     public int findNodeHostEntity(List<NodeHostEntity> values, NodeHostEntity nodeHostEntity) {
         int idx = -1;

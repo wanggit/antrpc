@@ -251,7 +251,7 @@ public class EventCountCircuitBreaker extends AbstractCircuitBreaker<Integer> {
         return performStateCheck(0);
     }
 
-    /** @return if System.nanoTime() - checkIntervalStart > 3s return true else false */
+    /** @return if System.nanoTime() - checkIntervalStart &gt; 3s return true else false */
     public boolean checkNearBy() {
         CheckIntervalData currentCheckIntervalData = this.checkIntervalData.get();
         long checkIntervalStart = currentCheckIntervalData.getCheckIntervalStart();
@@ -261,7 +261,7 @@ public class EventCountCircuitBreaker extends AbstractCircuitBreaker<Integer> {
     /**
      * get current check interval data
      *
-     * @return
+     * @return CheckIntervalData
      */
     public AtomicReference<CheckIntervalData> getCheckIntervalData() {
         return this.checkIntervalData;
