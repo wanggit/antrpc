@@ -1,20 +1,31 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
 import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 
 import java.util.List;
+import java.util.Map;
 
 public class NodeHostEntity extends Host {
 
     private Long registerTs;
     private Long refreshTs;
     private List<String> methodStrs;
+    private Map<String, RegisterBean.RegisterBeanMethod> methodMap;
     private String className;
 
     public NodeHostEntity() {}
 
     public NodeHostEntity(String ip, Integer port) {
         super(ip, port);
+    }
+
+    public Map<String, RegisterBean.RegisterBeanMethod> getMethodMap() {
+        return methodMap;
+    }
+
+    public void setMethodMap(Map<String, RegisterBean.RegisterBeanMethod> methodMap) {
+        this.methodMap = methodMap;
     }
 
     public Long getRegisterTs() {

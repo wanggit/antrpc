@@ -80,10 +80,11 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         RpcRequestBean rpcRequestBean = null;
         RpcCallLog rpcCallLog = null;
         try {
+            hostEntity = chooseNodeHostEntity(className);
             RegisterBean.RegisterBeanMethod registerBeanMethod =
                     RegisterBeanHelper.getRegisterBeanMethod(method);
             rpcCallLog = initRpcCallLog(registerBeanMethod, className);
-            if (!rateLimiting.allowAccess(registerBeanMethod)) {
+            if (!rateLimiting.allowAccess(registerBeanMethod, hostEntity)) {
                 String errorMessage =
                         registerBeanMethod.toString()
                                 + " interface calls reach frequency control limit, "
@@ -96,7 +97,6 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             rpcRequestBean = createRpcRequestBean(className, registerBeanMethod, args);
             RpcProtocol rpcProtocol = createRpcProtocol(rpcRequestBean);
             // 调用日志 RpcCallLog
-            hostEntity = chooseNodeHostEntity(className);
             String key = getCallLogKey(rpcRequestBean, hostEntity);
             if (circuitBreaker.checkState(className, key)) {
                 return doInternalSendWhenCircuitBreakerClosed(

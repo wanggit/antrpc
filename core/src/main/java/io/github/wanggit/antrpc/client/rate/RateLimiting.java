@@ -1,8 +1,10 @@
 package io.github.wanggit.antrpc.client.rate;
 
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
+import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.org.apache.commons.lang3.concurrent.EventCountCircuitBreaker;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -12,21 +14,32 @@ public class RateLimiting implements IRateLimiting {
             new ConcurrentHashMap<>();
 
     @Override
-    public boolean allowAccess(RegisterBean.RegisterBeanMethod registerBeanMethod) {
-        if (null == registerBeanMethod) {
+    public boolean allowAccess(
+            RegisterBean.RegisterBeanMethod registerBeanMethod, NodeHostEntity hostEntity) {
+        if (null == registerBeanMethod || null == hostEntity) {
             throw new IllegalArgumentException("Argument cannot be null.");
         }
-        if (registerBeanMethod.getLimit() <= 0 || registerBeanMethod.getDurationInSeconds() <= 0) {
-            return true;
+        Map<String, RegisterBean.RegisterBeanMethod> methodMap = hostEntity.getMethodMap();
+        if (null != methodMap) {
+            String methodFullName = registerBeanMethod.toString();
+            RegisterBean.RegisterBeanMethod beanMethod = methodMap.get(methodFullName);
+            if (null == beanMethod
+                    || beanMethod.getLimit() <= 0
+                    || beanMethod.getDurationInSeconds() <= 0) {
+                return true;
+            }
+            registerBeanMethod.setLimit(beanMethod.getLimit());
+            registerBeanMethod.setDurationInSeconds(beanMethod.getDurationInSeconds());
+            EventCountCircuitBreaker circuitBreaker =
+                    findEventCountCircuitBreaker(methodFullName, beanMethod);
+            if (null == circuitBreaker) {
+                throw new IllegalStateException(
+                        methodFullName
+                                + " cannot find the corresponding frequency control manager.");
+            }
+            return circuitBreaker.checkState();
         }
-        String methodFullName = registerBeanMethod.toString();
-        EventCountCircuitBreaker circuitBreaker =
-                findEventCountCircuitBreaker(methodFullName, registerBeanMethod);
-        if (null == circuitBreaker) {
-            throw new IllegalStateException(
-                    methodFullName + " cannot find the corresponding frequency control manager.");
-        }
-        return circuitBreaker.checkState();
+        return true;
     }
 
     private EventCountCircuitBreaker findEventCountCircuitBreaker(

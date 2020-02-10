@@ -3,6 +3,8 @@ package io.github.wanggit.antrpc.client.spring;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.client.zk.register.IRegister;
+import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
+import io.github.wanggit.antrpc.client.zk.register.RegisterBeanHelper;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
@@ -17,6 +19,12 @@ import org.junit.Test;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.ReflectionUtils;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CglibMethodInterceptorTest {
 
@@ -44,12 +52,12 @@ public class CglibMethodInterceptorTest {
         /*genericApplicationContext
         .getBeanFactory()
         .registerSingleton(IAntrpcContext.class.getName(), serverAntrpcContext);*/
-        serverAntrpcContext.init(genericApplicationContext);
         IRegister register = genericApplicationContext.getBean(IRegister.class);
         ZkRegister zkRegister = (ZkRegister) register;
         zkRegister.postProcessBeforeInitialization(
                 genericApplicationContext.getBean(DogInterface.class),
                 DogInterface.class.getName());
+        serverAntrpcContext.init(genericApplicationContext);
 
         // 无频率控制
         GenericApplicationContext clientApplicationContext = new GenericApplicationContext();
@@ -99,6 +107,11 @@ public class CglibMethodInterceptorTest {
         rateLimitingAntrpcContext
                 .getNodeHostContainer()
                 .add(DogInterface.class.getName(), getNodeHostEntity(serverPort));
+        List<NodeHostEntity> hostEntities =
+                rateLimitingAntrpcContext
+                        .getNodeHostContainer()
+                        .getHostEntities(DogInterface.class.getName());
+
         Object rateLimitingBean =
                 rateLimitingAntrpcContext.getBeanContainer().getOrCreateBean(DogInterface.class);
         Assert.assertTrue(rateLimitingBean instanceof DogInterface);
@@ -170,7 +183,19 @@ public class CglibMethodInterceptorTest {
         nodeHostEntity.setRegisterTs(System.currentTimeMillis());
         nodeHostEntity.setRefreshTs(System.currentTimeMillis());
         nodeHostEntity.setClassName(DogInterface.class.getName());
-        nodeHostEntity.setMethodStrs(Lists.newArrayList("getType()", "eat()"));
+        Map<String, RegisterBean.RegisterBeanMethod> methodMap = new HashMap<>();
+        Method eat = ReflectionUtils.findMethod(DogInterface.class, "eat");
+        ReflectionUtils.makeAccessible(eat);
+        RegisterBean.RegisterBeanMethod eatMethod = RegisterBeanHelper.getRegisterBeanMethod(eat);
+        methodMap.put(eatMethod.toString(), eatMethod);
+        Method getType = ReflectionUtils.findMethod(DogInterface.class, "getType");
+        ReflectionUtils.makeAccessible(getType);
+        RegisterBean.RegisterBeanMethod getTypeMethod =
+                RegisterBeanHelper.getRegisterBeanMethod(getType);
+        methodMap.put(getTypeMethod.toString(), getTypeMethod);
+        nodeHostEntity.setMethodStrs(
+                Lists.newArrayList(eatMethod.toString(), getTypeMethod.toString()));
+        nodeHostEntity.setMethodMap(methodMap);
         return nodeHostEntity;
     }
 
