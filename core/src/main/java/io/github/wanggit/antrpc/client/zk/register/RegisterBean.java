@@ -7,7 +7,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class RegisterBean {
@@ -31,11 +33,15 @@ public class RegisterBean {
     byte[] getNodeData() {
         if (!methods.isEmpty()) {
             List<String> methodStrs = new ArrayList<>(methods.size() * 2);
+            Map<String, RegisterBeanMethod> methodMap = new HashMap<>();
             for (RegisterBeanMethod beanMethod : methods) {
-                methodStrs.add(beanMethod.toString());
+                String key = beanMethod.toString();
+                methodStrs.add(key);
+                methodMap.put(key, beanMethod);
             }
             InterfaceNodeDataBean interfaceNodeDataBean = new InterfaceNodeDataBean();
             interfaceNodeDataBean.setMethods(methodStrs);
+            interfaceNodeDataBean.setMethodMap(methodMap);
             interfaceNodeDataBean.setTs(System.currentTimeMillis());
             String json = JSONObject.toJSONString(interfaceNodeDataBean);
             return json.getBytes(Charset.forName("UTF-8"));
@@ -72,6 +78,7 @@ public class RegisterBean {
     public static class InterfaceNodeDataBean {
         private Long ts;
         private List<String> methods;
+        private Map<String, RegisterBeanMethod> methodMap;
     }
 
     @Data

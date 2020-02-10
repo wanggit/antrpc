@@ -1,8 +1,8 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
-import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.zookeeper.data.Stat;
@@ -45,6 +45,7 @@ public class InterfaceZkNode extends ZkNode<RegisterBean.InterfaceNodeDataBean> 
         hostEntity.setPort(port);
         hostEntity.setMethodStrs(nodeData.getMethods());
         hostEntity.setRegisterTs(nodeData.getTs());
+        hostEntity.setMethodMap(nodeData.getMethodMap());
         hostEntity.setRefreshTs(System.currentTimeMillis());
         hostEntity.setClassName(className);
         if (OpType.ADD.equals(opType)) {
