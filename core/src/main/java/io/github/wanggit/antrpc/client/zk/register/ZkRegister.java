@@ -14,7 +14,6 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.lang.reflect.Method;
@@ -24,7 +23,7 @@ import java.util.List;
 
 /** Register all services identified by @RpcService as RPC services */
 @Slf4j
-public class ZkRegister implements IRegister, BeanPostProcessor {
+public class ZkRegister implements IRegister {
 
     private final List<RegisterBean> registerBeans = new ArrayList<>();
 
@@ -38,8 +37,7 @@ public class ZkRegister implements IRegister, BeanPostProcessor {
 
     // 1
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName)
-            throws BeansException {
+    public void checkHasRpcService(Object bean) {
         Class<?> beanClass = bean.getClass();
         RpcService rpcService = AnnotationUtils.findAnnotation(beanClass, RpcService.class);
         if (null != rpcService) {
@@ -71,14 +69,6 @@ public class ZkRegister implements IRegister, BeanPostProcessor {
             }
             registerBeans.add(registerBean);
         }
-        return bean;
-    }
-
-    // 2
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName)
-            throws BeansException {
-        return bean;
     }
 
     // 3

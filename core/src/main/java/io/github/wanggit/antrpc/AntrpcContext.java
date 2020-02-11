@@ -158,6 +158,28 @@ public class AntrpcContext implements IAntrpcContext {
         return register;
     }
 
+    public void setRegister(IRegister register) {
+        this.register = register;
+    }
+
+    public void setOnFailProcessor(IOnFailProcessor onFailProcessor) {
+        this.onFailProcessor = onFailProcessor;
+    }
+
+    public void setRpcAutowiredProcessor(IRpcAutowiredProcessor rpcAutowiredProcessor) {
+        this.rpcAutowiredProcessor = rpcAutowiredProcessor;
+    }
+
+    @Override
+    public IRpcAutowiredProcessor getRpcAutowiredProcessor() {
+        return rpcAutowiredProcessor;
+    }
+
+    @Override
+    public IOnFailProcessor getOnFailProcessor() {
+        return onFailProcessor;
+    }
+
     @Override
     public Listener getListener() {
         return listener;
@@ -192,15 +214,15 @@ public class AntrpcContext implements IAntrpcContext {
             this.initRpcCallLogHolder(applicationContext, configuration);
             this.rateLimiting = new RateLimiting();
             this.onFailHolder = new OnFailHolder();
-            this.initOnFailProcessor(applicationContext, onFailHolder);
+            this.initOnFailProcessor(onFailHolder);
             this.initZkClient(configuration);
             this.initLoadBalancerHelper(configuration);
             this.initNodeHostContainer(configuration, loadBalancerHelper);
             this.initZkNodeBuilder(zkClient, nodeHostContainer);
-            this.initZkNodeKeeper(applicationContext, zkClient, zkNodeBuilder);
-            this.initZkRegisterHolder(applicationContext, zkNodeBuilder, zkClient, configuration);
-            this.initListener(applicationContext, zkClient, zkRegisterHolder, zkNodeBuilder);
-            this.initRegister(applicationContext, zkNodeBuilder, zkRegisterHolder, configuration);
+            this.initZkNodeKeeper(/*applicationContext, */ zkClient, zkNodeBuilder);
+            this.initZkRegisterHolder(zkNodeBuilder, zkClient, configuration);
+            this.initListener(/*applicationContext, */ zkClient, zkRegisterHolder, zkNodeBuilder);
+            this.initRegister(zkNodeBuilder, zkRegisterHolder, configuration);
             this.initCircuitBreaker(configuration);
             this.initCodecHolder(configuration);
             this.initSerializerHolder(configuration);
@@ -213,7 +235,7 @@ public class AntrpcContext implements IAntrpcContext {
                     rpcClients,
                     serializerHolder,
                     nodeHostContainer);
-            this.initRpcAutowiredProcessor(applicationContext, beanContainer);
+            this.initRpcAutowiredProcessor(beanContainer);
             this.startServer(configuration, codecHolder, rpcRequestBeanInvoker, serializerHolder);
             if (log.isInfoEnabled()) {
                 log.info(
@@ -234,52 +256,44 @@ public class AntrpcContext implements IAntrpcContext {
         }
     }
 
-    private void initRpcAutowiredProcessor(
-            ConfigurableApplicationContext applicationContext, BeanContainer beanContainer) {
+    private void initRpcAutowiredProcessor(BeanContainer beanContainer) {
         if (null == beanContainer) {
             throw new IllegalArgumentException();
         }
-        IRpcAutowiredProcessor rpcAutowiredProcessor =
-                applicationContext.getBean(IRpcAutowiredProcessor.class);
         rpcAutowiredProcessor.init(beanContainer);
     }
 
-    private void initOnFailProcessor(
-            ConfigurableApplicationContext applicationContext, IOnFailHolder onFailHolder) {
+    private void initOnFailProcessor(IOnFailHolder onFailHolder) {
         if (null == onFailHolder) {
             throw new IllegalArgumentException();
         }
-        IOnFailProcessor onFailProcessor = applicationContext.getBean(IOnFailProcessor.class);
         onFailProcessor.init(onFailHolder);
     }
 
     private void initZkNodeKeeper(
-            ConfigurableApplicationContext applicationContext,
-            IZkClient zkClient,
-            IZkNodeBuilder zkNodeBuilder) {
+            /*ConfigurableApplicationContext applicationContext,*/
+            IZkClient zkClient, IZkNodeBuilder zkNodeBuilder) {
         if (null == zkClient || null == zkNodeBuilder) {
             throw new IllegalArgumentException();
         }
         this.zkNodeKeeper = new ZkNodeKeeper(zkClient, zkNodeBuilder);
-        applicationContext
-                .getBeanFactory()
-                .registerSingleton(IZkNodeKeeper.class.getName(), this.zkNodeKeeper);
+        /*applicationContext
+        .getBeanFactory()
+        .registerSingleton(IZkNodeKeeper.class.getName(), this.zkNodeKeeper);*/
         this.zkNodeKeeper.keep();
     }
 
     private void initListener(
-            ConfigurableApplicationContext applicationContext,
-            IZkClient zkClient,
-            IZkRegisterHolder zkRegisterHolder,
-            IZkNodeBuilder zkNodeBuilder) {
+            /*ConfigurableApplicationContext applicationContext,*/
+            IZkClient zkClient, IZkRegisterHolder zkRegisterHolder, IZkNodeBuilder zkNodeBuilder) {
         if (null == zkClient || null == zkRegisterHolder || null == zkNodeBuilder) {
             throw new IllegalArgumentException();
         }
         this.listener = new ZkListener(zkClient, zkRegisterHolder, zkNodeBuilder);
         this.listener.listen();
-        applicationContext
-                .getBeanFactory()
-                .registerSingleton(Listener.class.getName(), this.listener);
+        /*applicationContext
+        .getBeanFactory()
+        .registerSingleton(Listener.class.getName(), this.listener);*/
     }
 
     private void initRpcRequestBeanInvoker(ConfigurableApplicationContext applicationContext) {
@@ -287,14 +301,12 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initRegister(
-            ApplicationContext applicationContext,
             IZkNodeBuilder zkNodeBuilder,
             IZkRegisterHolder zkRegisterHolder,
             IConfiguration configuration) {
         if (null == zkNodeBuilder || null == zkRegisterHolder || null == configuration) {
             throw new IllegalArgumentException();
         }
-        register = applicationContext.getBean(IRegister.class);
         register.init(zkNodeBuilder, zkRegisterHolder, configuration);
     }
 
@@ -360,19 +372,12 @@ public class AntrpcContext implements IAntrpcContext {
     }
 
     private void initZkRegisterHolder(
-            ApplicationContext applicationContext,
-            IZkNodeBuilder zkNodeBuilder,
-            IZkClient zkClient,
-            IConfiguration configuration) {
+            IZkNodeBuilder zkNodeBuilder, IZkClient zkClient, IConfiguration configuration) {
         if (null == zkNodeBuilder || null == zkClient || null == configuration) {
             throw new IllegalArgumentException();
         }
         this.zkRegisterHolder =
-                new ZkRegisterHolder(
-                        applicationContext.getBean(IRegister.class),
-                        zkNodeBuilder,
-                        zkClient,
-                        configuration);
+                new ZkRegisterHolder(register, zkNodeBuilder, zkClient, configuration);
     }
 
     private void initZkNodeBuilder(IZkClient zkClient, INodeHostContainer nodeHostContainer) {

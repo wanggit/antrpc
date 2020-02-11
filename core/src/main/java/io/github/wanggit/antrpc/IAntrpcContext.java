@@ -4,6 +4,8 @@ import io.github.wanggit.antrpc.client.monitor.IRpcCallLogHolder;
 import io.github.wanggit.antrpc.client.rate.IRateLimiting;
 import io.github.wanggit.antrpc.client.spring.BeanContainer;
 import io.github.wanggit.antrpc.client.spring.IOnFailHolder;
+import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.IZkClient;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import io.github.wanggit.antrpc.client.zk.listener.Listener;
@@ -79,6 +81,10 @@ public interface IAntrpcContext {
     IZkRegisterHolder getZkRegisterHolder();
 
     IRegister getRegister();
+
+    IRpcAutowiredProcessor getRpcAutowiredProcessor();
+
+    IOnFailProcessor getOnFailProcessor();
 
     Listener getListener();
 

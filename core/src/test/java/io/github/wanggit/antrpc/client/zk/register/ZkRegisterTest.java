@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.config.Configuration;
@@ -34,7 +36,7 @@ public class ZkRegisterTest {
         Configuration configuration = new Configuration();
         configuration.setPort(rpcPort);
         configuration.setEnvironment(environment);
-        IAntrpcContext antrpcContext = new AntrpcContext(configuration);
+        AntrpcContext antrpcContext = new AntrpcContext(configuration);
         applicationContext.refresh();
         BeansToSpringContextUtil.toSpringContext(applicationContext);
         applicationContext
@@ -42,7 +44,10 @@ public class ZkRegisterTest {
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
         AInterface aInterface = new AImpl();
         ZkRegister register = (ZkRegister) applicationContext.getBean(IRegister.class);
-        register.postProcessBeforeInitialization(aInterface, "aInterface");
+        register.checkHasRpcService(aInterface);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(register);
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(applicationContext);
 
         String ipPath =

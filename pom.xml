@@ -12,7 +12,7 @@
 
     <groupId>io.github.wanggit</groupId>
     <artifactId>antrpc</artifactId>
-    <version>2.0.1.SNAPSHOT</version>
+    <version>2.0.1.RELEASE</version>
     <modules>
         <module>core</module>
         <!--<module>monitor</module>-->
@@ -76,7 +76,7 @@
 
     <properties>
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
-        <antrpc-core.version>2.0.1.SNAPSHOT</antrpc-core.version>
+        <antrpc-core.version>2.0.1.RELEASE</antrpc-core.version>
 
         <spring-kafka.version>2.4.1.RELEASE</spring-kafka.version>
         <curator-recipes.version>2.13.0</curator-recipes.version>
@@ -89,7 +89,6 @@
         <kryo.version>4.0.2</kryo.version>
         <guava.version>28.0-jre</guava.version>
         <commons-pool2.version>2.6.2</commons-pool2.version>
-        <cglib.version>3.3.0</cglib.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <fastjson.version>1.2.59</fastjson.version>
         <commons-compress.version>1.19</commons-compress.version>
@@ -112,11 +111,6 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>${fastjson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib</artifactId>
-            <version>${cglib.version}</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>

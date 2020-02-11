@@ -7,6 +7,9 @@ import org.springframework.beans.BeansException;
 public interface IRegister {
     void register(RegisterBean registerBean, IZkNodeBuilder zkNodeBuilder, String exposeIp);
 
+    // 1
+    void checkHasRpcService(Object bean);
+
     void init(
             IZkNodeBuilder zkNodeBuilder,
             IZkRegisterHolder registerHolder,

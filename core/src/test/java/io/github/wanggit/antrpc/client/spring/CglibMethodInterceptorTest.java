@@ -54,9 +54,10 @@ public class CglibMethodInterceptorTest {
         .registerSingleton(IAntrpcContext.class.getName(), serverAntrpcContext);*/
         IRegister register = genericApplicationContext.getBean(IRegister.class);
         ZkRegister zkRegister = (ZkRegister) register;
-        zkRegister.postProcessBeforeInitialization(
-                genericApplicationContext.getBean(DogInterface.class),
-                DogInterface.class.getName());
+        zkRegister.checkHasRpcService(genericApplicationContext.getBean(DogInterface.class));
+        serverAntrpcContext.setOnFailProcessor(new OnFailProcessor());
+        serverAntrpcContext.setRegister(new ZkRegister());
+        serverAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         serverAntrpcContext.init(genericApplicationContext);
 
         // 无频率控制
@@ -75,6 +76,9 @@ public class CglibMethodInterceptorTest {
         Configuration clientConfiguration = (Configuration) clientAntrpcContext.getConfiguration();
         clientConfiguration.setPort(rpcPort);
         clientConfiguration.setEnvironment(clientEnvironment);
+        clientAntrpcContext.setOnFailProcessor(new OnFailProcessor());
+        clientAntrpcContext.setRegister(new ZkRegister());
+        clientAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         clientAntrpcContext.init(clientApplicationContext);
         NodeHostEntity nodeHostEntity = getNodeHostEntity(serverPort);
         clientAntrpcContext
@@ -103,6 +107,9 @@ public class CglibMethodInterceptorTest {
                 (Configuration) rateLimitingAntrpcContext.getConfiguration();
         rateConfiguration.setPort(rateRpcPort);
         rateConfiguration.setEnvironment(rateLimitingEnvironment);
+        rateLimitingAntrpcContext.setOnFailProcessor(new OnFailProcessor());
+        rateLimitingAntrpcContext.setRegister(new ZkRegister());
+        rateLimitingAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         rateLimitingAntrpcContext.init(rateLimitingApplicationContext);
         rateLimitingAntrpcContext
                 .getNodeHostContainer()
@@ -153,9 +160,11 @@ public class CglibMethodInterceptorTest {
         .registerSingleton(IAntrpcContext.class.getName(), defaultRespAntrpcContext);*/
         OnFailProcessor onFailProcessor =
                 defaultRespApplicationContext.getBean(OnFailProcessor.class);
-        onFailProcessor.postProcessBeforeInitialization(
-                defaultRespApplicationContext.getBean(DogInterface.class.getName()),
-                DogInterface.class.getName());
+        onFailProcessor.checkHasOnRpcFail(
+                defaultRespApplicationContext.getBean(DogInterface.class.getName()));
+        defaultRespAntrpcContext.setOnFailProcessor(onFailProcessor);
+        defaultRespAntrpcContext.setRegister(new ZkRegister());
+        defaultRespAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         defaultRespAntrpcContext.init(defaultRespApplicationContext);
         defaultRespAntrpcContext
                 .getNodeHostContainer()
@@ -217,6 +226,9 @@ public class CglibMethodInterceptorTest {
         configuration.setPort(rpcPort);
         genericApplicationContext.refresh();
         setBeansToSpringContext(genericApplicationContext);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
         Object bean = antrpcContext.getBeanContainer().getOrCreateBean(CatInterface.class);
         Assert.assertTrue(bean.toString().contains("CatInterface"));
@@ -243,6 +255,9 @@ public class CglibMethodInterceptorTest {
         serverConfiguration.setPort(serverPort);
         serverConfiguration.setEnvironment(environment);
         setBeansToSpringContext(applicationContext);
+        serverAntrpcContext.setOnFailProcessor(new OnFailProcessor());
+        serverAntrpcContext.setRegister(new ZkRegister());
+        serverAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         serverAntrpcContext.init(applicationContext);
 
         GenericApplicationContext clientApplicationContext = new GenericApplicationContext();
@@ -257,6 +272,9 @@ public class CglibMethodInterceptorTest {
         configuration.setEnvironment(clientEnvironment);
         clientApplicationContext.refresh();
         setBeansToSpringContext(clientApplicationContext);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(clientApplicationContext);
         NodeHostEntity nodeHostEntity = new NodeHostEntity();
         nodeHostEntity.setIp("localhost");

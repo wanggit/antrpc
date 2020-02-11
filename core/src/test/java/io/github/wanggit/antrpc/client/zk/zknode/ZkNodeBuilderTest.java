@@ -4,7 +4,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
@@ -39,6 +42,9 @@ public class ZkNodeBuilderTest {
         configuration.setPort(rpcPort);
         configuration.setEnvironment(mockEnvironment);
         AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
         ZkNodeBuilder zkNodeBuilder =
                 new ZkNodeBuilder(
@@ -89,6 +95,9 @@ public class ZkNodeBuilderTest {
         genericApplicationContext.refresh();
         BeansToSpringContextUtil.toSpringContext(genericApplicationContext);
         AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
         ZkNodeBuilder zkNodeBuilder = (ZkNodeBuilder) antrpcContext.getZkNodeBuilder();
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();

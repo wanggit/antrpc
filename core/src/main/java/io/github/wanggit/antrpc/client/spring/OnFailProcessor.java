@@ -2,16 +2,14 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class OnFailProcessor implements IOnFailProcessor, BeanPostProcessor {
+public class OnFailProcessor implements IOnFailProcessor {
 
     private final Map<Class, Object> cache = new ConcurrentHashMap<>();
 
@@ -33,8 +31,7 @@ public class OnFailProcessor implements IOnFailProcessor, BeanPostProcessor {
 
     // 1
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName)
-            throws BeansException {
+    public void checkHasOnRpcFail(Object bean) {
         OnRpcFail onRpcFail = AnnotationUtils.findAnnotation(bean.getClass(), OnRpcFail.class);
         if (null != onRpcFail) {
             if (!onRpcFail.clazz().isAssignableFrom(bean.getClass())) {
@@ -46,13 +43,5 @@ public class OnFailProcessor implements IOnFailProcessor, BeanPostProcessor {
             }
             cache.put(onRpcFail.clazz(), bean);
         }
-        return bean;
-    }
-
-    // 2
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName)
-            throws BeansException {
-        return bean;
     }
 }

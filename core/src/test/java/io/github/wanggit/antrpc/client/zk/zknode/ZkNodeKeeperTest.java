@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
-import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.ZkClient;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
@@ -42,7 +44,10 @@ public class ZkNodeKeeperTest {
         Configuration configuration = new Configuration();
         configuration.setPort(RandomUtils.nextInt(1000, 9000));
         configuration.setEnvironment(mockEnvironment);
-        IAntrpcContext antrpcContext = new AntrpcContext(configuration);
+        AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
 
         ZkClient zkClient = (ZkClient) antrpcContext.getZkClient();
