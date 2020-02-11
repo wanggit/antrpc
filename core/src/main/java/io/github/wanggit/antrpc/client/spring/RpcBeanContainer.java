@@ -46,8 +46,7 @@ public class RpcBeanContainer implements BeanContainer {
         if (!beans.containsKey(className)) {
             synchronized (className.intern()) {
                 if (!beans.containsKey(className)) {
-                    Object proxy =
-                            CglibProxy.getInstance().getProxy(clazz, this.cglibMethodInterceptor);
+                    Object proxy = CglibProxy.createProxy(clazz, this.cglibMethodInterceptor);
                     beans.put(className, proxy);
                 }
             }

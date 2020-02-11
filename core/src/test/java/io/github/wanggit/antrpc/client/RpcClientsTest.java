@@ -344,6 +344,9 @@ public class RpcClientsTest {
         WaitUtil.wait(3, 1);
         clientConfiguration.setStartServer(false);
         clientConfiguration.setEnvironment(clientEnv);
+        clientAntrpcContext.setOnFailProcessor(new OnFailProcessor());
+        clientAntrpcContext.setRegister(new ZkRegister());
+        clientAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         clientAntrpcContext.init(clientApplicationContext);
         return clientAntrpcContext;
     }
@@ -392,6 +395,9 @@ public class RpcClientsTest {
         configuration.setPort(rpcPort);
         configuration.setStartServer(true);
         configuration.setEnvironment(environment);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
         for (RegisterBean registerBean : registerBeans) {
             antrpcContext

@@ -3,6 +3,8 @@ package io.github.wanggit.antrpc.client.zk.register;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomUtils;
@@ -34,6 +36,9 @@ public class ZkRegisterHolderTest {
         applicationContext.refresh();
         BeansToSpringContextUtil.toSpringContext(applicationContext);
         AntrpcContext antrpcContext = new AntrpcContext(configuration);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(applicationContext);
         applicationContext
                 .getBeanFactory()

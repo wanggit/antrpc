@@ -2,15 +2,13 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.commons.annotations.RpcAutowired;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RpcAutowiredProcessor implements IRpcAutowiredProcessor, BeanPostProcessor {
+public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
 
     private final List<InfoWrapper> infoWrappers = new ArrayList<>();
 
@@ -24,21 +22,13 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor, BeanPostPr
     }
 
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName)
-            throws BeansException {
+    public void checkBeanHasRpcAutowire(Object bean) {
         Field[] fields = FieldUtils.getFieldsWithAnnotation(bean.getClass(), RpcAutowired.class);
         for (int i = 0; i < fields.length; i++) {
             Field field = fields[i];
             ReflectionUtils.makeAccessible(field);
             infoWrappers.add(new InfoWrapper(bean, field));
         }
-        return bean;
-    }
-
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName)
-            throws BeansException {
-        return bean;
     }
 
     static class InfoWrapper {

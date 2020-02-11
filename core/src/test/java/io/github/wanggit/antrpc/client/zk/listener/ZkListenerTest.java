@@ -5,7 +5,10 @@ import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
+import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
+import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
@@ -40,6 +43,9 @@ public class ZkListenerTest {
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setPort(RandomUtils.nextInt(5000, 9000));
         configuration.setEnvironment(environment);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(applicationContext);
 
         RegisterBean.IpNodeDataBean ipNodeDataBean = new RegisterBean.IpNodeDataBean();

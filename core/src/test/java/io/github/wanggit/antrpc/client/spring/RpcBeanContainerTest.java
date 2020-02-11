@@ -2,6 +2,7 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.apache.commons.lang3.RandomUtils;
@@ -34,6 +35,9 @@ public class RpcBeanContainerTest {
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setPort(RandomUtils.nextInt(2000, 9000));
         configuration.setEnvironment(mockEnvironment);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
         List<Object> objects = new ArrayList<>(1500);
         for (int i = 0; i < 1000; i++) {

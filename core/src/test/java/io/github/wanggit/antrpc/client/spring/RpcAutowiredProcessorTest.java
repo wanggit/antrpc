@@ -2,10 +2,10 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.annotations.RpcAutowired;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import org.apache.commons.lang3.RandomUtils;
-import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
@@ -37,14 +37,11 @@ public class RpcAutowiredProcessorTest {
                 .registerSingleton(TestAutowired.class.getName(), testAutowired);
         RpcAutowiredProcessor rpcAutowiredProcessor =
                 (RpcAutowiredProcessor) applicationContext.getBean(IRpcAutowiredProcessor.class);
-        Object processedObj =
-                rpcAutowiredProcessor.postProcessBeforeInitialization(
-                        testAutowired, TestAutowired.class.getName());
+        rpcAutowiredProcessor.checkBeanHasRpcAutowire(testAutowired);
+        antrpcContext.setOnFailProcessor(new OnFailProcessor());
+        antrpcContext.setRegister(new ZkRegister());
+        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(applicationContext);
-        Assert.assertNotNull(processedObj);
-        Assert.assertTrue(processedObj instanceof TestAutowired);
-        TestAutowired test = (TestAutowired) processedObj;
-        Assert.assertNotNull(test.getTestAutowiredInterface());
     }
 
     interface TestAutowiredInterface {
