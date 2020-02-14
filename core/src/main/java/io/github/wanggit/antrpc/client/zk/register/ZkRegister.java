@@ -2,14 +2,15 @@ package io.github.wanggit.antrpc.client.zk.register;
 
 import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.zk.zknode.IZkNodeBuilder;
+import io.github.wanggit.antrpc.commons.annotations.OnRpcFail;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.constants.Constants;
+import io.github.wanggit.antrpc.commons.utils.AntRpcClassUtils;
 import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.zookeeper.CreateMode;
 import org.springframework.beans.BeansException;
@@ -40,16 +41,18 @@ public class ZkRegister implements IRegister {
     public void checkHasRpcService(Object bean) {
         Class<?> beanClass = bean.getClass();
         RpcService rpcService = AnnotationUtils.findAnnotation(beanClass, RpcService.class);
-        if (null != rpcService) {
+        OnRpcFail onRpcFail = AnnotationUtils.findAnnotation(beanClass, OnRpcFail.class);
+        // 标识OnRpcFail注解的对象不能被注册到注册中心，只能在本地使用
+        if (null != rpcService && null == onRpcFail) {
             String className = beanClass.getName();
-            List<Class<?>> allInterfaces = ClassUtils.getAllInterfaces(beanClass);
-            if (allInterfaces.isEmpty()) {
+            List<Class<?>> classes = AntRpcClassUtils.getAllInterfaces(bean);
+            if (classes.isEmpty()) {
                 throw new BeanCreationException(
                         "The @"
                                 + RpcService.class.getSimpleName()
                                 + " tagged class must implement an interface.");
             }
-            Class<?> interfaceClass = allInterfaces.get(0);
+            Class<?> interfaceClass = classes.get(0);
             String interfaceClassName = interfaceClass.getName();
             if (log.isInfoEnabled()) {
                 log.info(

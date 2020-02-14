@@ -1,5 +1,9 @@
 package io.github.wanggit.antrpc.commons.bean;
 
+import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class SerialNumberThreadLocal {
 
     private static final ThreadLocal<TraceEntity> threadLocal = new ThreadLocal<>();
@@ -18,10 +22,21 @@ public class SerialNumberThreadLocal {
 
     public static void set(TraceEntity entity) {
         threadLocal.set(entity);
+        if (log.isInfoEnabled()) {
+            log.info(
+                    "threadId = "
+                            + Thread.currentThread().getId()
+                            + " thread local set data "
+                            + JSONObject.toJSONString(entity));
+        }
     }
 
     public static void clean() {
         threadLocal.remove();
+        if (log.isInfoEnabled()) {
+            log.info(
+                    "threadId = " + Thread.currentThread().getId() + " thread local data removed.");
+        }
     }
 
     public static class TraceEntity {

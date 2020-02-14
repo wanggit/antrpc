@@ -22,13 +22,14 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
     }
 
     @Override
-    public void checkBeanHasRpcAutowire(Object bean) {
+    public boolean checkBeanHasRpcAutowire(Object bean) {
         Field[] fields = FieldUtils.getFieldsWithAnnotation(bean.getClass(), RpcAutowired.class);
         for (int i = 0; i < fields.length; i++) {
             Field field = fields[i];
             ReflectionUtils.makeAccessible(field);
             infoWrappers.add(new InfoWrapper(bean, field));
         }
+        return fields.length > 0;
     }
 
     static class InfoWrapper {

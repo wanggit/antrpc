@@ -2,10 +2,7 @@ package io.github.wanggit.antrpc.client.zk.register;
 
 import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.BeansToSpringContextUtil;
 import io.github.wanggit.antrpc.IAntrpcContext;
-import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.config.Configuration;
@@ -14,6 +11,8 @@ import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.ReflectionUtils;
@@ -38,16 +37,18 @@ public class ZkRegisterTest {
         configuration.setEnvironment(environment);
         AntrpcContext antrpcContext = new AntrpcContext(configuration);
         applicationContext.refresh();
-        BeansToSpringContextUtil.toSpringContext(applicationContext);
+        // BeansToSpringContextUtil.toSpringContext(applicationContext);
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(IAntrpcContext.class.getName(), antrpcContext);
         AInterface aInterface = new AImpl();
-        ZkRegister register = (ZkRegister) applicationContext.getBean(IRegister.class);
-        register.checkHasRpcService(aInterface);
-        antrpcContext.setOnFailProcessor(new OnFailProcessor());
-        antrpcContext.setRegister(register);
-        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
+        applicationContext
+                .getBeanFactory()
+                .registerSingleton(AInterface.class.getName(), aInterface);
+        GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
+        genericBeanDefinition.setBeanClass(AImpl.class);
+        ((BeanDefinitionRegistry) applicationContext.getBeanFactory())
+                .registerBeanDefinition(AInterface.class.getName(), genericBeanDefinition);
         antrpcContext.init(applicationContext);
 
         String ipPath =
