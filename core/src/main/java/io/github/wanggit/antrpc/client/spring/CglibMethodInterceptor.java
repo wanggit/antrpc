@@ -20,11 +20,13 @@ import io.github.wanggit.antrpc.commons.breaker.ICircuitBreaker;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
+import io.github.wanggit.antrpc.commons.utils.AntRpcClassUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 @Slf4j
 public class CglibMethodInterceptor implements MethodInterceptor {
@@ -60,8 +62,8 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         if (method.getDeclaringClass().equals(Object.class)) {
             return proxy.invokeSuper(obj, args);
         }
-        Class<?>[] interfaces = obj.getClass().getInterfaces();
-        if (interfaces.length == 0) {
+        List<Class<?>> allInterfaces = AntRpcClassUtils.getAllInterfaces(obj);
+        if (allInterfaces.isEmpty()) {
             String message =
                     "The "
                             + obj.getClass().getName()
@@ -71,7 +73,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             }
             throw new IllegalStateException(message);
         }
-        Class<?> anInterface = interfaces[0];
+        Class<?> anInterface = allInterfaces.get(0);
         String className = anInterface.getName();
         if (log.isInfoEnabled()) {
             log.info(className + "#" + method.getName());

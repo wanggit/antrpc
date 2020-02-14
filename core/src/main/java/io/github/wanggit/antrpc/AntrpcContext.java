@@ -13,6 +13,7 @@ import io.github.wanggit.antrpc.client.zk.listener.Listener;
 import io.github.wanggit.antrpc.client.zk.listener.ZkListener;
 import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.IZkRegisterHolder;
+import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.client.zk.register.ZkRegisterHolder;
 import io.github.wanggit.antrpc.client.zk.zknode.*;
 import io.github.wanggit.antrpc.commons.IRpcClients;
@@ -32,6 +33,7 @@ import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.github.wanggit.antrpc.server.invoker.RpcRequestBeanInvoker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -39,6 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class AntrpcContext implements IAntrpcContext {
+
+    private static final String ANTRPC_CONTEXT_BEAN_NAME = "antrpcContext";
 
     private BeanContainer beanContainer;
 
@@ -83,6 +87,10 @@ public class AntrpcContext implements IAntrpcContext {
     private IOnFailProcessor onFailProcessor;
 
     private IRpcAutowiredProcessor rpcAutowiredProcessor;
+
+    private CallerProxyFactory callerProxyFactory;
+
+    private CallerProxyMethodInterceptor callerProxyMethodInterceptor;
 
     public AntrpcContext(IConfiguration configuration) {
         this.configuration = configuration;
@@ -209,6 +217,8 @@ public class AntrpcContext implements IAntrpcContext {
     public void init(ConfigurableApplicationContext applicationContext) {
         if (inited.compareAndSet(false, true)) {
             long start = System.currentTimeMillis();
+            this.doAntRpcBeanAnnotationCheck(applicationContext.getBeanFactory());
+            this.doRegisterAntrpcContextToSpring(applicationContext.getBeanFactory());
             this.initExposedIp(configuration);
             this.initRpcRequestBeanInvoker(applicationContext);
             this.initRpcCallLogHolder(applicationContext, configuration);
@@ -248,6 +258,43 @@ public class AntrpcContext implements IAntrpcContext {
 
     void destroy() {
         this.server.close();
+    }
+
+    private void doAntRpcBeanAnnotationCheck(ConfigurableListableBeanFactory beanFactory) {
+        this.register = new ZkRegister();
+        this.onFailProcessor = new OnFailProcessor();
+        this.rpcAutowiredProcessor = new RpcAutowiredProcessor();
+        this.callerProxyFactory = new DefaultCallerProxyFactory();
+        this.callerProxyMethodInterceptor = new CallerProxyMethodInterceptor();
+        String[] names = beanFactory.getBeanDefinitionNames();
+        for (String name : names) {
+            Object bean = internalGetBean(beanFactory, name);
+            if (null != bean) {
+                bean =
+                        callerProxyFactory.proxy(
+                                name, bean, beanFactory, callerProxyMethodInterceptor);
+                rpcAutowiredProcessor.checkBeanHasRpcAutowire(bean);
+                onFailProcessor.checkHasOnRpcFail(bean);
+                register.checkHasRpcService(bean);
+            }
+        }
+    }
+
+    private void doRegisterAntrpcContextToSpring(ConfigurableListableBeanFactory beanFactory) {
+        if (!beanFactory.containsBean(ANTRPC_CONTEXT_BEAN_NAME)) {
+            beanFactory.registerSingleton(ANTRPC_CONTEXT_BEAN_NAME, this);
+        }
+    }
+
+    private Object internalGetBean(ConfigurableListableBeanFactory beanFactory, String name) {
+        try {
+            return beanFactory.getBean(name);
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("This Bean cannot be found in the Spring container. name = " + name);
+            }
+            return null;
+        }
     }
 
     private void initExposedIp(IConfiguration configuration) {
