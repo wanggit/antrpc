@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.util.Date;
+
 @Slf4j
 public class RpcCallLogHolder implements IRpcCallLogHolder {
 
@@ -39,6 +41,7 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
         if (null != logReporter.getConfiguration()) {
             rpcCallLog.setAppName(logReporter.getConfiguration().getApplicationName());
         }
+        rpcCallLog.setDate(new Date().toInstant().toString());
         logReporter.report(rpcCallLog);
     }
 }

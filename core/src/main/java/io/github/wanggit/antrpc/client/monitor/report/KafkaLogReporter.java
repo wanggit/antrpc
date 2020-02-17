@@ -19,7 +19,7 @@ public class KafkaLogReporter implements IKafkaLogReporter, ILogReporter {
     @Override
     public void report(RpcCallLog log) {
         if (!reportArgumentValues) {
-            log.setArgumentsJson(null);
+            log.setRequestArgs(null);
         }
         if (null != kafkaTemplate) {
             kafkaTemplate.send(topic, JSONObject.toJSONString(log));

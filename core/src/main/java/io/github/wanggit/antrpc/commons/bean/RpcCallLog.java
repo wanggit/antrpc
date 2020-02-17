@@ -38,7 +38,7 @@ public class RpcCallLog implements Serializable {
 
     private String requestId;
 
-    private String argumentsJson;
-
     private Object[] requestArgs;
+
+    private String date;
 }

@@ -85,7 +85,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             hostEntity = chooseNodeHostEntity(className);
             RegisterBean.RegisterBeanMethod registerBeanMethod =
                     RegisterBeanHelper.getRegisterBeanMethod(method);
-            rpcCallLog = initRpcCallLog(registerBeanMethod, className);
+            rpcCallLog = initRpcCallLog(registerBeanMethod, className, args);
             if (!rateLimiting.allowAccess(registerBeanMethod, hostEntity)) {
                 String errorMessage =
                         registerBeanMethod.toString()
@@ -219,7 +219,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
     }
 
     private RpcCallLog initRpcCallLog(
-            RegisterBean.RegisterBeanMethod registerBeanMethod, String className) {
+            RegisterBean.RegisterBeanMethod registerBeanMethod, String className, Object[] args) {
         RpcCallLog rpcCallLog = new RpcCallLog();
         rpcCallLog.setClassName(className);
         rpcCallLog.setMethodName(registerBeanMethod.toString());
@@ -228,6 +228,7 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         rpcCallLog.setCaller(traceEntity.getCaller());
         rpcCallLog.setThreadId(Thread.currentThread().getId());
         rpcCallLog.setStart(System.currentTimeMillis());
+        rpcCallLog.setRequestArgs(args);
         return rpcCallLog;
     }
 
