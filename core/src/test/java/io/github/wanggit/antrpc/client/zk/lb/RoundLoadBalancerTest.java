@@ -1,6 +1,7 @@
 package io.github.wanggit.antrpc.client.zk.lb;
 
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
+import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,16 +14,22 @@ public class RoundLoadBalancerTest {
         RoundLoadBalancer<NodeHostEntity> roundLoadBalancer = new RoundLoadBalancer<>();
         String ipPrefix = "192.168.1.";
         List<NodeHostEntity> entities = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             NodeHostEntity entity = new NodeHostEntity();
             entity.setIp(ipPrefix + i);
             entity.setPort(7000);
             entities.add(entity);
         }
-        for (int i = 0; i < 200; i++) {
-            NodeHostEntity entity = roundLoadBalancer.chooseFrom(entities);
-            Assert.assertNotNull(entity);
+        for (int i = 0; i < 20000; i++) {
+            new Thread() {
+                @Override
+                public void run() {
+                    NodeHostEntity entity = roundLoadBalancer.chooseFrom(entities);
+                    Assert.assertNotNull(entity);
+                }
+            }.start();
         }
+        WaitUtil.wait(2, 1);
         Map<String, Long> snapshot = HostLogHolder.getInstance().snapshot();
         Map<String, Long> tmps = new HashMap<>();
         snapshot.forEach(

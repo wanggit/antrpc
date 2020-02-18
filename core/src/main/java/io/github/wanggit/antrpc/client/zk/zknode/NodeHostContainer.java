@@ -1,6 +1,8 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.zk.exception.InterfaceProviderNotFoundException;
+import io.github.wanggit.antrpc.client.zk.lb.ILoadBalancer;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,7 +61,20 @@ public final class NodeHostContainer implements INodeHostContainer {
             throw new InterfaceProviderNotFoundException(
                     "No service provider for the " + className + " interface was found.");
         }
-        return loadBalancerHelper.getLoadBalancer(NodeHostEntity.class).chooseFrom(hostEntities);
+        ILoadBalancer<NodeHostEntity> loadBalancer =
+                loadBalancerHelper.getLoadBalancer(NodeHostEntity.class);
+        NodeHostEntity choosed = loadBalancer.chooseFrom(hostEntities);
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    className
+                            + " --> hostEntities="
+                            + JSONObject.toJSONString(hostEntities)
+                            + " \n choosed="
+                            + JSONObject.toJSONString(choosed)
+                            + " \n loadBalancer="
+                            + loadBalancer.getClass().getName());
+        }
+        return choosed;
     }
 
     @Override
@@ -71,7 +86,27 @@ public final class NodeHostContainer implements INodeHostContainer {
             if (!entities.containsKey(className)) {
                 entities.put(className, new ArrayList<>());
             }
-            entities.get(className).add(nodeHostEntity);
+            List<NodeHostEntity> theClassNameHostEntities = entities.get(className);
+            int idx = findNodeHostEntity(theClassNameHostEntities, nodeHostEntity);
+            if (idx == -1) {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "will add node host info. className="
+                                    + className
+                                    + " \n nodeHostEntity="
+                                    + JSONObject.toJSONString(nodeHostEntity));
+                }
+                entities.get(className).add(nodeHostEntity);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "will update node host info. className="
+                                    + className
+                                    + " \n nodeHostEntity="
+                                    + JSONObject.toJSONString(nodeHostEntity));
+                }
+                intervalUpdateNodeInfos(theClassNameHostEntities.get(idx), nodeHostEntity);
+            }
         }
     }
 
@@ -114,11 +149,14 @@ public final class NodeHostContainer implements INodeHostContainer {
             }
             values.add(nodeHostEntity);
         } else {
-            NodeHostEntity entity = values.get(idx);
-            entity.setMethodStrs(nodeHostEntity.getMethodStrs());
-            entity.setRefreshTs(nodeHostEntity.getRefreshTs());
-            entity.setRegisterTs(nodeHostEntity.getRegisterTs());
+            intervalUpdateNodeInfos(values.get(idx), nodeHostEntity);
         }
+    }
+
+    private void intervalUpdateNodeInfos(NodeHostEntity oldEntity, NodeHostEntity newEntity) {
+        oldEntity.setMethodStrs(newEntity.getMethodStrs());
+        oldEntity.setRefreshTs(newEntity.getRefreshTs());
+        oldEntity.setRegisterTs(newEntity.getRegisterTs());
     }
 
     @Override
