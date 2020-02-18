@@ -12,7 +12,7 @@
 
     <groupId>io.github.wanggit</groupId>
     <artifactId>antrpc</artifactId>
-    <version>2.0.2-SNAPSHOT</version>
+    <version>2.0.2.RELEASE</version>
     <modules>
         <module>core</module>
         <!--<module>monitor</module>-->
@@ -76,7 +76,7 @@
 
     <properties>
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
-        <antrpc-core.version>2.0.2-SNAPSHOT</antrpc-core.version>
+        <antrpc-core.version>2.0.2.RELEASE</antrpc-core.version>
 
         <spring-kafka.version>2.4.1.RELEASE</spring-kafka.version>
         <curator-recipes.version>2.13.0</curator-recipes.version>
