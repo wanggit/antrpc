@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.client.zk.lb;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.Host;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
@@ -16,6 +17,9 @@ public class RandomLoadBalancer<T extends Host> extends AbstractLoadBalancer<T> 
         int size = hostEntities.size();
         int idx = RandomUtils.nextInt(0, size);
         T entity = hostEntities.get(idx);
+        if (log.isDebugEnabled()) {
+            log.debug("Choosed " + JSONObject.toJSONString(entity));
+        }
         super.stats(entity);
         return entity;
     }

@@ -17,8 +17,8 @@ public class OnFailProcessor implements IOnFailProcessor {
     @Override
     public void init(IOnFailHolder onFailHolder) {
         for (Map.Entry<Class, Object> entry : cache.entrySet()) {
-            if (log.isInfoEnabled()) {
-                log.info(
+            if (log.isDebugEnabled()) {
+                log.debug(
                         entry.getValue()
                                 + " is registered as a failed callback for "
                                 + entry.getKey().getName()

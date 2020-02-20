@@ -35,13 +35,13 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
 
     @Override
     public void log(RpcCallLog rpcCallLog) {
-        if (log.isInfoEnabled()) {
-            log.info(JSONObject.toJSONString(rpcCallLog));
-        }
         if (null != logReporter.getConfiguration()) {
             rpcCallLog.setAppName(logReporter.getConfiguration().getApplicationName());
         }
         rpcCallLog.setDate(new Date().toInstant().toString());
+        if (log.isDebugEnabled()) {
+            log.debug(JSONObject.toJSONString(rpcCallLog));
+        }
         logReporter.report(rpcCallLog);
     }
 }

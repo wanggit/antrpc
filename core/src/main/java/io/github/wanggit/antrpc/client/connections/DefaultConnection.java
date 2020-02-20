@@ -34,8 +34,8 @@ public class DefaultConnection implements Connection {
 
     @Override
     public void reportHeartBeat(boolean send, int cmdId) {
-        if (log.isInfoEnabled()) {
-            log.info((send ? "Send" : "Receive") + " heartbeat packet, cmdId = " + cmdId + ".");
+        if (log.isDebugEnabled()) {
+            log.debug((send ? "Send" : "Receive") + " heartbeat packet, cmdId = " + cmdId + ".");
         }
         if (send) {
             heartBeatCounter.send(cmdId);

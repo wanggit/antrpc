@@ -108,8 +108,8 @@ public class ConnectionPool {
     }
 
     private void printStat() {
-        if (log.isTraceEnabled()) {
-            log.trace(
+        if (log.isDebugEnabled()) {
+            log.debug(
                     "CreatedCount="
                             + pool.getCreatedCount()
                             + ", ReturnedCount="

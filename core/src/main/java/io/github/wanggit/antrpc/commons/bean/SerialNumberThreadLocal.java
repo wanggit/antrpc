@@ -22,8 +22,8 @@ public class SerialNumberThreadLocal {
 
     public static void set(TraceEntity entity) {
         threadLocal.set(entity);
-        if (log.isInfoEnabled()) {
-            log.info(
+        if (log.isDebugEnabled()) {
+            log.debug(
                     "threadId = "
                             + Thread.currentThread().getId()
                             + " thread local set data "
@@ -33,8 +33,8 @@ public class SerialNumberThreadLocal {
 
     public static void clean() {
         threadLocal.remove();
-        if (log.isInfoEnabled()) {
-            log.info(
+        if (log.isDebugEnabled()) {
+            log.debug(
                     "threadId = " + Thread.currentThread().getId() + " thread local data removed.");
         }
     }

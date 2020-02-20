@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.server.handler;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.commons.bean.*;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
@@ -23,14 +24,14 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcProtocol msg) throws Exception {
         if (msg.getType() == ConstantValues.HB_TYPE) {
-            if (log.isDebugEnabled()) {
-                log.debug("Heartbeat received from [" + ctx.channel() + "]");
-            }
             RpcProtocol rpcProtocol = HeartBeatCreator.create(msg.getCmdId());
             ctx.channel().writeAndFlush(rpcProtocol);
         } else {
             RpcRequestBean requestBean =
                     (RpcRequestBean) serializerHolder.getSerializer().deserialize(msg.getData());
+            if (log.isDebugEnabled()) {
+                log.debug(JSONObject.toJSONString(requestBean));
+            }
             SerialNumberThreadLocal.TraceEntity traceEntity =
                     new SerialNumberThreadLocal.TraceEntity();
             traceEntity.setSerialNumber(requestBean.getSerialNumber());
