@@ -73,18 +73,24 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             }
             throw new IllegalStateException(message);
         }
+        if (log.isDebugEnabled()) {
+            log.debug("class=" + obj.getClass() + ", allInterfaces=" + allInterfaces.toString());
+        }
         Class<?> anInterface = allInterfaces.get(0);
+        if (log.isDebugEnabled()) {
+            log.debug("class=" + obj.getClass() + ", choosed interface=" + anInterface.getName());
+        }
         String className = anInterface.getName();
-        if (log.isInfoEnabled()) {
-            log.info(className + "#" + method.getName());
+        if (log.isDebugEnabled()) {
+            log.debug(className + "#" + method.getName());
         }
         NodeHostEntity hostEntity = null;
         RpcRequestBean rpcRequestBean = null;
         RpcCallLog rpcCallLog = null;
         try {
-            hostEntity = chooseNodeHostEntity(className);
             RegisterBean.RegisterBeanMethod registerBeanMethod =
                     RegisterBeanHelper.getRegisterBeanMethod(method);
+            hostEntity = chooseNodeHostEntity(className, registerBeanMethod.toString());
             rpcCallLog = initRpcCallLog(registerBeanMethod, className, args);
             if (!rateLimiting.allowAccess(registerBeanMethod, hostEntity)) {
                 String errorMessage =
@@ -214,8 +220,8 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         return rpcClient.send(rpcProtocol);
     }
 
-    private NodeHostEntity chooseNodeHostEntity(String className) {
-        return nodeHostContainer.choose(className);
+    private NodeHostEntity chooseNodeHostEntity(String className, String methodFullName) {
+        return nodeHostContainer.choose(className, methodFullName);
     }
 
     private RpcCallLog initRpcCallLog(

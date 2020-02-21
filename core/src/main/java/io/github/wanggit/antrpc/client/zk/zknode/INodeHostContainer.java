@@ -1,14 +1,12 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
 import java.util.List;
-import java.util.Map;
 
 public interface INodeHostContainer {
-    Map<String, List<NodeHostEntity>> snapshot();
 
-    List<NodeHostEntity> getHostEntities(String className);
+    List<NodeHostEntity> getHostEntities(String className, String methodFullName);
 
-    NodeHostEntity choose(String className);
+    NodeHostEntity choose(String className, String methodFullName);
 
     void add(String className, NodeHostEntity nodeHostEntity);
 

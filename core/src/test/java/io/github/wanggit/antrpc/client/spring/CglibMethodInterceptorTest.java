@@ -26,7 +26,6 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class CglibMethodInterceptorTest {
@@ -187,10 +186,6 @@ public class CglibMethodInterceptorTest {
         rateLimitingAntrpcContext
                 .getNodeHostContainer()
                 .add(DogInterface.class.getName(), getNodeHostEntity(serverPort));
-        List<NodeHostEntity> hostEntities =
-                rateLimitingAntrpcContext
-                        .getNodeHostContainer()
-                        .getHostEntities(DogInterface.class.getName());
 
         Object rateLimitingBean =
                 rateLimitingAntrpcContext.getBeanContainer().getOrCreateBean(DogInterface.class);
@@ -304,9 +299,21 @@ public class CglibMethodInterceptorTest {
         nodeHostEntity.setIp("localhost");
         nodeHostEntity.setPort(serverPort);
         nodeHostEntity.setClassName(CatInterface.class.getName());
-        nodeHostEntity.setMethodStrs(Lists.newArrayList("getName()", "getType()"));
         nodeHostEntity.setRefreshTs(System.currentTimeMillis());
         nodeHostEntity.setRegisterTs(System.currentTimeMillis());
+        Map<String, RegisterBean.RegisterBeanMethod> methodMap = new HashMap<>();
+        RegisterBean.RegisterBeanMethod getNameMethod =
+                RegisterBeanHelper.getRegisterBeanMethod(
+                        ReflectionUtils.findMethod(CatInterface.class, "getName"));
+        methodMap.put(getNameMethod.toString(), getNameMethod);
+        RegisterBean.RegisterBeanMethod getTypeMethod =
+                RegisterBeanHelper.getRegisterBeanMethod(
+                        ReflectionUtils.findMethod(CatInterface.class, "getType"));
+        methodMap.put(getTypeMethod.toString(), getTypeMethod);
+        nodeHostEntity.setMethodMap(methodMap);
+        nodeHostEntity.setMethodStrs(
+                Lists.newArrayList(getNameMethod.toString(), getTypeMethod.toString()));
+
         antrpcContext.getNodeHostContainer().add(CatInterface.class.getName(), nodeHostEntity);
         Object bean = antrpcContext.getBeanContainer().getOrCreateBean(CatInterface.class);
         Assert.assertNotNull(bean);
@@ -330,6 +337,7 @@ public class CglibMethodInterceptorTest {
     }
 
     interface AnimalInterface {
+        @RpcMethod
         String getType();
     }
 

@@ -1,17 +1,11 @@
 package io.github.wanggit.antrpc;
 
-import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.register.IRegister;
-import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import org.springframework.context.support.GenericApplicationContext;
 
 public abstract class BeansToSpringContextUtil {
 
     public static void toSpringContext(GenericApplicationContext applicationContext) {
-        applicationContext
+        /*applicationContext
                 .getBeanFactory()
                 .registerSingleton(IRegister.class.getName(), new ZkRegister());
         applicationContext
@@ -20,6 +14,6 @@ public abstract class BeansToSpringContextUtil {
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(
-                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
+                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());*/
     }
 }
