@@ -36,6 +36,21 @@ public class ZkRegister implements IRegister {
         zkNodeBuilder.remoteCreateZkNode(zkFullpath, nodeData, CreateMode.EPHEMERAL);
     }
 
+    @Override
+    public void unregister(IConfiguration configuration, IZkNodeBuilder zkNodeBuilder) {
+        if (log.isInfoEnabled()) {
+            log.info("All service will be unregister.");
+        }
+        for (RegisterBean registerBean : registerBeans) {
+            String zookeeperFullPath =
+                    registerBean.getZookeeperFullPath(configuration.getExposeIp());
+            if (log.isInfoEnabled()) {
+                log.info("The " + zookeeperFullPath + " node will be deleted.");
+            }
+            zkNodeBuilder.deleteNode(zookeeperFullPath);
+        }
+    }
+
     // 1
     @Override
     public void checkHasRpcService(Object bean) {

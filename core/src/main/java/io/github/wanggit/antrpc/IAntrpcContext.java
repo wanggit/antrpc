@@ -102,4 +102,6 @@ public interface IAntrpcContext {
      * @param applicationContext Spring应用上下文
      */
     void init(ConfigurableApplicationContext applicationContext);
+
+    void destroy();
 }
