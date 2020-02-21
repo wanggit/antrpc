@@ -90,4 +90,15 @@ public class ZkNodeBuilder implements IZkNodeBuilder {
             throw new ZkRegisterException("Zookeeper node " + zkFullpath + " creation failed.", e);
         }
     }
+
+    @Override
+    public void deleteNode(String zookeeperFullPath) {
+        try {
+            curator.delete().deletingChildrenIfNeeded().forPath(zookeeperFullPath);
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("Failed to delete " + zookeeperFullPath + " node.", e);
+            }
+        }
+    }
 }

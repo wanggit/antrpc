@@ -43,6 +43,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AntrpcContext implements IAntrpcContext {
 
     private static final String ANTRPC_CONTEXT_BEAN_NAME = "antrpcContext";
+    private static ConfigurableApplicationContext applicationContext;
+
+    static {
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        IAntrpcContext antrpcContext =
+                                                (IAntrpcContext)
+                                                        applicationContext.getBean(
+                                                                ANTRPC_CONTEXT_BEAN_NAME);
+                                        antrpcContext.destroy();
+                                        applicationContext = null;
+                                    }
+                                },
+                                "AntRpcShutdownHook"));
+    }
 
     private BeanContainer beanContainer;
 
@@ -217,6 +236,7 @@ public class AntrpcContext implements IAntrpcContext {
     public void init(ConfigurableApplicationContext applicationContext) {
         if (inited.compareAndSet(false, true)) {
             long start = System.currentTimeMillis();
+            AntrpcContext.applicationContext = applicationContext;
             this.doAntRpcBeanAnnotationCheck(applicationContext.getBeanFactory());
             this.doRegisterAntrpcContextToSpring(applicationContext.getBeanFactory());
             this.initExposedIp(configuration);
@@ -229,9 +249,9 @@ public class AntrpcContext implements IAntrpcContext {
             this.initLoadBalancerHelper(configuration);
             this.initNodeHostContainer(configuration, loadBalancerHelper);
             this.initZkNodeBuilder(zkClient, nodeHostContainer);
-            this.initZkNodeKeeper(/*applicationContext, */ zkClient, zkNodeBuilder);
+            this.initZkNodeKeeper(zkClient, zkNodeBuilder);
             this.initZkRegisterHolder(zkNodeBuilder, zkClient, configuration);
-            this.initListener(/*applicationContext, */ zkClient, zkRegisterHolder, zkNodeBuilder);
+            this.initListener(zkClient, zkRegisterHolder, zkNodeBuilder);
             this.initRegister(zkNodeBuilder, zkRegisterHolder, configuration);
             this.initCircuitBreaker(configuration);
             this.initCodecHolder(configuration);
@@ -256,7 +276,12 @@ public class AntrpcContext implements IAntrpcContext {
         }
     }
 
-    void destroy() {
+    @Override
+    public void destroy() {
+        if (log.isInfoEnabled()) {
+            log.info("AntrpcContext is being destroyed.");
+        }
+        this.register.unregister(configuration, zkNodeBuilder);
         this.server.close();
     }
 
@@ -317,30 +342,21 @@ public class AntrpcContext implements IAntrpcContext {
         onFailProcessor.init(onFailHolder);
     }
 
-    private void initZkNodeKeeper(
-            /*ConfigurableApplicationContext applicationContext,*/
-            IZkClient zkClient, IZkNodeBuilder zkNodeBuilder) {
+    private void initZkNodeKeeper(IZkClient zkClient, IZkNodeBuilder zkNodeBuilder) {
         if (null == zkClient || null == zkNodeBuilder) {
             throw new IllegalArgumentException();
         }
         this.zkNodeKeeper = new ZkNodeKeeper(zkClient, zkNodeBuilder);
-        /*applicationContext
-        .getBeanFactory()
-        .registerSingleton(IZkNodeKeeper.class.getName(), this.zkNodeKeeper);*/
         this.zkNodeKeeper.keep();
     }
 
     private void initListener(
-            /*ConfigurableApplicationContext applicationContext,*/
             IZkClient zkClient, IZkRegisterHolder zkRegisterHolder, IZkNodeBuilder zkNodeBuilder) {
         if (null == zkClient || null == zkRegisterHolder || null == zkNodeBuilder) {
             throw new IllegalArgumentException();
         }
         this.listener = new ZkListener(zkClient, zkRegisterHolder, zkNodeBuilder);
         this.listener.listen();
-        /*applicationContext
-        .getBeanFactory()
-        .registerSingleton(Listener.class.getName(), this.listener);*/
     }
 
     private void initRpcRequestBeanInvoker(ConfigurableApplicationContext applicationContext) {
