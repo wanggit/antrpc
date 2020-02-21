@@ -12,11 +12,17 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Date;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class RpcCallLogHolder implements IRpcCallLogHolder {
 
     private final ILogReporter logReporter;
+
+    private final ThreadPoolExecutor threadPoolExecutor;
 
     public RpcCallLogHolder(IConfiguration configuration, ApplicationContext applicationContext)
             throws Exception {
@@ -31,6 +37,22 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
             ((IKafkaLogReporter) logReporter)
                     .setKafkaTemplate(applicationContext.getBean(KafkaTemplate.class));
         }
+        threadPoolExecutor =
+                new ThreadPoolExecutor(
+                        3,
+                        6,
+                        500,
+                        TimeUnit.MILLISECONDS,
+                        new ArrayBlockingQueue<>(10),
+                        new RejectedExecutionHandler() {
+                            @Override
+                            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                                if (log.isWarnEnabled()) {
+                                    log.warn(
+                                            "The log queue is full and some logs will be discarded.");
+                                }
+                            }
+                        });
     }
 
     @Override
@@ -42,6 +64,12 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
         if (log.isDebugEnabled()) {
             log.debug(JSONObject.toJSONString(rpcCallLog));
         }
-        logReporter.report(rpcCallLog);
+        threadPoolExecutor.submit(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        logReporter.report(rpcCallLog);
+                    }
+                });
     }
 }

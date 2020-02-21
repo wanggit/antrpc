@@ -73,10 +73,16 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             }
             throw new IllegalStateException(message);
         }
+        if (log.isDebugEnabled()) {
+            log.debug("class=" + obj.getClass() + ", allInterfaces=" + allInterfaces.toString());
+        }
         Class<?> anInterface = allInterfaces.get(0);
+        if (log.isDebugEnabled()) {
+            log.debug("class=" + obj.getClass() + ", choosed interface=" + anInterface.getName());
+        }
         String className = anInterface.getName();
-        if (log.isInfoEnabled()) {
-            log.info(className + "#" + method.getName());
+        if (log.isDebugEnabled()) {
+            log.debug(className + "#" + method.getName());
         }
         NodeHostEntity hostEntity = null;
         RpcRequestBean rpcRequestBean = null;
