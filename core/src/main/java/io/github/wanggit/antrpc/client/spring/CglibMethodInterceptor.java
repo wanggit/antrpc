@@ -82,9 +82,9 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         RpcRequestBean rpcRequestBean = null;
         RpcCallLog rpcCallLog = null;
         try {
-            hostEntity = chooseNodeHostEntity(className);
             RegisterBean.RegisterBeanMethod registerBeanMethod =
                     RegisterBeanHelper.getRegisterBeanMethod(method);
+            hostEntity = chooseNodeHostEntity(className, registerBeanMethod.toString());
             rpcCallLog = initRpcCallLog(registerBeanMethod, className, args);
             if (!rateLimiting.allowAccess(registerBeanMethod, hostEntity)) {
                 String errorMessage =
@@ -214,8 +214,8 @@ public class CglibMethodInterceptor implements MethodInterceptor {
         return rpcClient.send(rpcProtocol);
     }
 
-    private NodeHostEntity chooseNodeHostEntity(String className) {
-        return nodeHostContainer.choose(className);
+    private NodeHostEntity chooseNodeHostEntity(String className, String methodFullName) {
+        return nodeHostContainer.choose(className, methodFullName);
     }
 
     private RpcCallLog initRpcCallLog(

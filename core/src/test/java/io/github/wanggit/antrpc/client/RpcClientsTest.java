@@ -2,13 +2,7 @@ package io.github.wanggit.antrpc.client;
 
 import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.spring.IOnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.IRpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.spring.OnFailProcessor;
-import io.github.wanggit.antrpc.client.spring.RpcAutowiredProcessor;
-import io.github.wanggit.antrpc.client.zk.register.IRegister;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
-import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.codec.cryption.AESCodec;
@@ -19,6 +13,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -317,36 +313,21 @@ public class RpcClientsTest {
         clientApplicationContext.setEnvironment(clientEnv);
         clientApplicationContext.refresh();
         for (Map.Entry<String, Object> entry : singletons.entrySet()) {
-            clientApplicationContext
-                    .getBeanFactory()
-                    .registerSingleton(entry.getKey(), entry.getValue());
+            GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
+            genericBeanDefinition.setBeanClass(entry.getValue().getClass());
+            ((BeanDefinitionRegistry) clientApplicationContext)
+                    .registerBeanDefinition(entry.getKey(), genericBeanDefinition);
         }
         Configuration configuration = new Configuration();
         configuration.setPort(rpcPort);
         AntrpcContext clientAntrpcContext = new AntrpcContext(configuration);
         configurationCallback.initConfiguration(
                 (Configuration) clientAntrpcContext.getConfiguration());
-        clientApplicationContext
-                .getBeanFactory()
-                .registerSingleton(AntrpcContext.class.getName(), clientAntrpcContext);
-        clientApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IRegister.class.getName(), new ZkRegister());
-        clientApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
-        clientApplicationContext
-                .getBeanFactory()
-                .registerSingleton(
-                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
         Configuration clientConfiguration = (Configuration) clientAntrpcContext.getConfiguration();
 
         WaitUtil.wait(3, 1);
         clientConfiguration.setStartServer(false);
         clientConfiguration.setEnvironment(clientEnv);
-        clientAntrpcContext.setOnFailProcessor(new OnFailProcessor());
-        clientAntrpcContext.setRegister(new ZkRegister());
-        clientAntrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         clientAntrpcContext.init(clientApplicationContext);
         return clientAntrpcContext;
     }
@@ -369,44 +350,21 @@ public class RpcClientsTest {
         genericApplicationContext.refresh();
         if (null != singletons) {
             for (Map.Entry<String, Object> entry : singletons.entrySet()) {
-                genericApplicationContext
-                        .getBeanFactory()
-                        .registerSingleton(entry.getKey(), entry.getValue());
+                GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
+                genericBeanDefinition.setBeanClass(entry.getValue().getClass());
+                ((BeanDefinitionRegistry) genericApplicationContext)
+                        .registerBeanDefinition(entry.getKey(), genericBeanDefinition);
             }
         }
 
         AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         configurationCallback.initConfiguration((Configuration) antrpcContext.getConfiguration());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(AntrpcContext.class.getName(), antrpcContext);
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IRegister.class.getName(), new ZkRegister());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(IOnFailProcessor.class.getName(), new OnFailProcessor());
-        genericApplicationContext
-                .getBeanFactory()
-                .registerSingleton(
-                        IRpcAutowiredProcessor.class.getName(), new RpcAutowiredProcessor());
 
         Configuration configuration = (Configuration) antrpcContext.getConfiguration();
         configuration.setPort(rpcPort);
         configuration.setStartServer(true);
         configuration.setEnvironment(environment);
-        antrpcContext.setOnFailProcessor(new OnFailProcessor());
-        antrpcContext.setRegister(new ZkRegister());
-        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
         antrpcContext.init(genericApplicationContext);
-        for (RegisterBean registerBean : registerBeans) {
-            antrpcContext
-                    .getRegister()
-                    .register(
-                            registerBean,
-                            antrpcContext.getZkNodeBuilder(),
-                            configuration.getExposeIp());
-        }
     }
 
     @RpcService

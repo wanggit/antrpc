@@ -4,18 +4,20 @@ import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.client.zk.exception.InterfaceProviderNotFoundException;
 import io.github.wanggit.antrpc.client.zk.lb.ILoadBalancer;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
+import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public final class NodeHostContainer implements INodeHostContainer {
 
     private final ConcurrentHashMap<String, List<NodeHostEntity>> entities =
+            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ILoadBalancer<NodeHostEntity>> loadBalancers =
             new ConcurrentHashMap<>();
     private final LoadBalancerHelper loadBalancerHelper;
     private final Map<String, DirectNodeHostEntity> directHosts;
@@ -27,20 +29,19 @@ public final class NodeHostContainer implements INodeHostContainer {
     }
 
     @Override
-    public Map<String, List<NodeHostEntity>> snapshot() {
-        return new TreeMap<>(entities);
-    }
-
-    @Override
-    public List<NodeHostEntity> getHostEntities(String className) {
-        return entities.get(className);
-    }
-
-    @Override
-    public NodeHostEntity choose(String className) {
-        if (null == className) {
-            throw new IllegalArgumentException("className cannot be null.");
+    public List<NodeHostEntity> getHostEntities(String className, String methodFullName) {
+        if (null == className || null == methodFullName) {
+            throw new IllegalArgumentException("className and methodFullName cannot be null.");
         }
+        return entities.get(getKey(className, methodFullName));
+    }
+
+    @Override
+    public NodeHostEntity choose(String className, String methodFullName) {
+        if (null == className || null == methodFullName) {
+            throw new IllegalArgumentException("className and methodFullName cannot be null.");
+        }
+        // 直连时只依据接口判断
         if (null != directHosts && !directHosts.isEmpty()) {
             DirectNodeHostEntity directNodeHostEntity = directHosts.get(className);
             if (null != directNodeHostEntity) {
@@ -56,17 +57,30 @@ public final class NodeHostContainer implements INodeHostContainer {
                 return directNodeHostEntity;
             }
         }
-        List<NodeHostEntity> hostEntities = entities.get(className);
+        String fullName = getKey(className, methodFullName);
+        if (!entities.containsKey(fullName)) {
+            throw new InterfaceProviderNotFoundException(
+                    "No service provider for the " + fullName + " interface was found.");
+        }
+        List<NodeHostEntity> hostEntities = entities.get(fullName);
         if (null == hostEntities || hostEntities.isEmpty()) {
             throw new InterfaceProviderNotFoundException(
-                    "No service provider for the " + className + " interface was found.");
+                    "No service provider for the "
+                            + className
+                            + "#"
+                            + methodFullName
+                            + " interface was found.");
         }
-        ILoadBalancer<NodeHostEntity> loadBalancer =
-                loadBalancerHelper.getLoadBalancer(NodeHostEntity.class);
+        ILoadBalancer<NodeHostEntity> loadBalancer = loadBalancers.get(fullName);
+        if (null == loadBalancer) {
+            throw new IllegalArgumentException("The " + fullName + " has no load balancer.");
+        }
         NodeHostEntity choosed = loadBalancer.chooseFrom(hostEntities);
         if (log.isDebugEnabled()) {
             log.debug(
-                    className
+                    fullName
+                            + "#"
+                            + methodFullName
                             + " --> hostEntities="
                             + JSONObject.toJSONString(hostEntities)
                             + " \n choosed="
@@ -83,30 +97,37 @@ public final class NodeHostContainer implements INodeHostContainer {
             throw new IllegalArgumentException("className and nodeHostEntity cannot be null.");
         }
         synchronized (className.intern()) {
-            if (!entities.containsKey(className)) {
-                entities.put(className, new ArrayList<>());
-            }
-            List<NodeHostEntity> theClassNameHostEntities = entities.get(className);
-            int idx = findNodeHostEntity(theClassNameHostEntities, nodeHostEntity);
-            if (idx == -1) {
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "will add node host info. className="
-                                    + className
-                                    + " \n nodeHostEntity="
-                                    + JSONObject.toJSONString(nodeHostEntity));
-                }
-                entities.get(className).add(nodeHostEntity);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "will update node host info. className="
-                                    + className
-                                    + " \n nodeHostEntity="
-                                    + JSONObject.toJSONString(nodeHostEntity));
-                }
-                intervalUpdateNodeInfos(theClassNameHostEntities.get(idx), nodeHostEntity);
-            }
+            Map<String, RegisterBean.RegisterBeanMethod> methodMap = nodeHostEntity.getMethodMap();
+            methodMap.forEach(
+                    (key, value) -> {
+                        String fullName = getKey(className, value.toString());
+                        List<NodeHostEntity> nodeHostEntities = entities.get(fullName);
+                        if (null == nodeHostEntities) {
+                            entities.put(fullName, new ArrayList<>());
+                            nodeHostEntities = entities.get(fullName);
+                            loadBalancers.put(fullName, loadBalancerHelper.getLoadBalancer());
+                        }
+                        int idx = findNodeHostEntity(nodeHostEntities, nodeHostEntity);
+                        if (idx == -1) {
+                            if (log.isDebugEnabled()) {
+                                log.debug(
+                                        "will add node host info. className="
+                                                + fullName
+                                                + " \n nodeHostEntity="
+                                                + JSONObject.toJSONString(nodeHostEntity));
+                            }
+                            entities.get(fullName).add(nodeHostEntity);
+                        } else {
+                            if (log.isDebugEnabled()) {
+                                log.debug(
+                                        "will update node host info. className="
+                                                + fullName
+                                                + " \n nodeHostEntity="
+                                                + JSONObject.toJSONString(nodeHostEntity));
+                            }
+                            intervalUpdateNodeInfos(nodeHostEntities.get(idx), nodeHostEntity);
+                        }
+                    });
         }
     }
 
@@ -121,36 +142,42 @@ public final class NodeHostContainer implements INodeHostContainer {
     }
 
     private void internalUpdate(String className, NodeHostEntity nodeHostEntity) {
-        List<NodeHostEntity> values = entities.get(className);
-        if (null == values) {
-            if (log.isWarnEnabled()) {
-                log.warn(className + " configuration does not exist. will add it.");
-            }
-            entities.put(className, new ArrayList<>());
-            values = entities.get(className);
-        }
-        if (log.isInfoEnabled()) {
-            log.info(
-                    "Update the "
-                            + nodeHostEntity.getHostInfo()
-                            + " node of the "
-                            + className
-                            + ".");
-        }
-        int idx = findNodeHostEntity(values, nodeHostEntity);
-        if (idx == -1) {
-            if (log.isWarnEnabled()) {
-                log.warn(
-                        "Not found the "
-                                + nodeHostEntity.getHostInfo()
-                                + " node of the "
-                                + className
-                                + ", will add it.");
-            }
-            values.add(nodeHostEntity);
-        } else {
-            intervalUpdateNodeInfos(values.get(idx), nodeHostEntity);
-        }
+        Map<String, RegisterBean.RegisterBeanMethod> methodMap = nodeHostEntity.getMethodMap();
+        methodMap.forEach(
+                (key, value) -> {
+                    String fullName = getKey(className, value.toString());
+                    List<NodeHostEntity> values = entities.get(fullName);
+                    if (null == values) {
+                        if (log.isWarnEnabled()) {
+                            log.warn(fullName + " configuration does not exist. will add it.");
+                        }
+                        entities.put(fullName, new ArrayList<>());
+                        values = entities.get(fullName);
+                        loadBalancers.put(fullName, loadBalancerHelper.getLoadBalancer());
+                    }
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                                "Update the "
+                                        + nodeHostEntity.getHostInfo()
+                                        + " node of the "
+                                        + fullName
+                                        + ".");
+                    }
+                    int idx = findNodeHostEntity(values, nodeHostEntity);
+                    if (idx == -1) {
+                        if (log.isWarnEnabled()) {
+                            log.warn(
+                                    "Not found the "
+                                            + nodeHostEntity.getHostInfo()
+                                            + " node of the "
+                                            + fullName
+                                            + ", will add it.");
+                        }
+                        values.add(nodeHostEntity);
+                    } else {
+                        intervalUpdateNodeInfos(values.get(idx), nodeHostEntity);
+                    }
+                });
     }
 
     private void intervalUpdateNodeInfos(NodeHostEntity oldEntity, NodeHostEntity newEntity) {
@@ -170,36 +197,42 @@ public final class NodeHostContainer implements INodeHostContainer {
     }
 
     private void internalDelete(String className, NodeHostEntity nodeHostEntity) {
-        List<NodeHostEntity> values = entities.get(className);
-        if (null == values) {
-            if (log.isWarnEnabled()) {
-                log.warn(className + " configuration does not exist.");
-            }
-        }
-        if (log.isInfoEnabled()) {
-            log.info(
-                    "Delete the "
-                            + nodeHostEntity.getHostInfo()
-                            + " node of the "
-                            + className
-                            + ".");
-        }
-        int idx = findNodeHostEntity(values, nodeHostEntity);
-        if (idx == -1) {
-            if (log.isWarnEnabled()) {
-                log.warn(
-                        "Not found the "
-                                + nodeHostEntity.getHostInfo()
-                                + " node of the "
-                                + className
-                                + ".");
-            }
-        } else {
-            values.remove(idx);
-        }
-        if (values.isEmpty()) {
-            entities.remove(className);
-        }
+        Map<String, RegisterBean.RegisterBeanMethod> methodMap = nodeHostEntity.getMethodMap();
+        methodMap.forEach(
+                (key, value) -> {
+                    String fullName = getKey(className, value.toString());
+                    List<NodeHostEntity> values = entities.get(fullName);
+                    if (null == values) {
+                        if (log.isWarnEnabled()) {
+                            log.warn(fullName + " configuration does not exist.");
+                        }
+                    }
+                    if (log.isInfoEnabled()) {
+                        log.info(
+                                "Delete the "
+                                        + nodeHostEntity.getHostInfo()
+                                        + " node of the "
+                                        + fullName
+                                        + ".");
+                    }
+                    int idx = findNodeHostEntity(values, nodeHostEntity);
+                    if (idx == -1) {
+                        if (log.isWarnEnabled()) {
+                            log.warn(
+                                    "Not found the "
+                                            + nodeHostEntity.getHostInfo()
+                                            + " node of the "
+                                            + fullName
+                                            + ".");
+                        }
+                    } else {
+                        values.remove(idx);
+                    }
+                    if (values.isEmpty()) {
+                        entities.remove(fullName);
+                        loadBalancers.remove(fullName);
+                    }
+                });
     }
 
     @Override
@@ -213,5 +246,9 @@ public final class NodeHostContainer implements INodeHostContainer {
             }
         }
         return idx;
+    }
+
+    private String getKey(String className, String methodFullName) {
+        return className + "#" + methodFullName;
     }
 }

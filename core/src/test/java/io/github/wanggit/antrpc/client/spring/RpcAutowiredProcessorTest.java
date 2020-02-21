@@ -2,11 +2,12 @@ package io.github.wanggit.antrpc.client.spring;
 
 import io.github.wanggit.antrpc.AntrpcContext;
 import io.github.wanggit.antrpc.BeansToSpringContextUtil;
-import io.github.wanggit.antrpc.client.zk.register.ZkRegister;
 import io.github.wanggit.antrpc.commons.annotations.RpcAutowired;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -31,16 +32,10 @@ public class RpcAutowiredProcessorTest {
         applicationContext
                 .getBeanFactory()
                 .registerSingleton(AntrpcContext.class.getName(), antrpcContext);
-        TestAutowired testAutowired = new TestAutowired();
-        applicationContext
-                .getBeanFactory()
-                .registerSingleton(TestAutowired.class.getName(), testAutowired);
-        RpcAutowiredProcessor rpcAutowiredProcessor =
-                (RpcAutowiredProcessor) applicationContext.getBean(IRpcAutowiredProcessor.class);
-        rpcAutowiredProcessor.checkBeanHasRpcAutowire(testAutowired);
-        antrpcContext.setOnFailProcessor(new OnFailProcessor());
-        antrpcContext.setRegister(new ZkRegister());
-        antrpcContext.setRpcAutowiredProcessor(new RpcAutowiredProcessor());
+        GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
+        genericBeanDefinition.setBeanClass(TestAutowired.class);
+        ((BeanDefinitionRegistry) applicationContext)
+                .registerBeanDefinition(TestAutowired.class.getName(), genericBeanDefinition);
         antrpcContext.init(applicationContext);
     }
 
