@@ -8,6 +8,7 @@ import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +27,16 @@ public final class NodeHostContainer implements INodeHostContainer {
             LoadBalancerHelper loadBalancerHelper, Map<String, DirectNodeHostEntity> directHosts) {
         this.loadBalancerHelper = loadBalancerHelper;
         this.directHosts = directHosts;
+    }
+
+    @Override
+    public Map<String, List<NodeHostEntity>> entitiesSnapshot() {
+        return new HashMap<>(entities);
+    }
+
+    @Override
+    public Map<String, ILoadBalancer<NodeHostEntity>> loadBalancersSnapshot() {
+        return new HashMap<>(loadBalancers);
     }
 
     @Override

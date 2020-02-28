@@ -56,12 +56,18 @@ public class ZkRegisterHolder implements IZkRegisterHolder, Runnable {
             log.info("All services will be re-registered.");
         }
         for (RegisterBean registerBean : registerBeans) {
-            register.register(registerBean, zkNodeBuilder, configuration.getExposeIp());
-            if (log.isInfoEnabled()) {
-                log.info(
-                        "The "
-                                + registerBean.getZookeeperFullPath(configuration.getExposeIp())
-                                + " service has been re-registered.");
+            if (registerBean.isPause()) {
+                if (log.isInfoEnabled()) {
+                    log.info("The " + registerBean.getClassName() + " pause register!!!!");
+                }
+            } else {
+                register.register(registerBean, zkNodeBuilder, configuration.getExposeIp());
+                if (log.isInfoEnabled()) {
+                    log.info(
+                            "The "
+                                    + registerBean.getZookeeperFullPath(configuration.getExposeIp())
+                                    + " service has been re-registered.");
+                }
             }
         }
     }
@@ -96,6 +102,17 @@ public class ZkRegisterHolder implements IZkRegisterHolder, Runnable {
     }
 
     private void internalRunRegister(RegisterBean it) {
+        if (it.isPause()) {
+            if (log.isInfoEnabled()) {
+                log.info(
+                        "The "
+                                + it.getZookeeperFullPath(configuration.getExposeIp())
+                                + " will reRegister, but the "
+                                + it.getClassName()
+                                + " was pause register!!!");
+            }
+            return;
+        }
         try {
             register.register(it, zkNodeBuilder, configuration.getExposeIp());
         } catch (Exception e) {

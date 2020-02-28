@@ -51,6 +51,57 @@ public class ZkRegister implements IRegister {
         }
     }
 
+    @Override
+    public List<RegisterBean> snapshot() {
+        return new ArrayList<>(registerBeans);
+    }
+
+    @Override
+    public void playAllRegister() {
+        registerBeans.forEach(
+                it -> {
+                    it.setPause(false);
+                });
+    }
+
+    @Override
+    public void playRegister(String className) {
+        RegisterBean registerBean = findRegisterBeanByClassName(className);
+        if (null != registerBean) {
+            registerBean.setPause(false);
+        }
+    }
+
+    @Override
+    public void pauseAllRegister(IConfiguration configuration, IZkNodeBuilder zkNodeBuilder) {
+        registerBeans.forEach(
+                it -> {
+                    it.setPause(true);
+                    zkNodeBuilder.deleteNode(it.getZookeeperFullPath(configuration.getExposeIp()));
+                });
+    }
+
+    @Override
+    public void pauseRegister(
+            IConfiguration configuration, IZkNodeBuilder zkNodeBuilder, String className) {
+        RegisterBean registerBean = findRegisterBeanByClassName(className);
+        if (null != registerBean) {
+            registerBean.setPause(true);
+            zkNodeBuilder.deleteNode(
+                    registerBean.getZookeeperFullPath(configuration.getExposeIp()));
+        }
+    }
+
+    @Override
+    public RegisterBean findRegisterBeanByClassName(String className) {
+        for (RegisterBean bean : registerBeans) {
+            if (bean.getClassName().equals(className)) {
+                return bean;
+            }
+        }
+        return null;
+    }
+
     // 1
     @Override
     public void checkHasRpcService(Object bean) {

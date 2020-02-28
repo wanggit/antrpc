@@ -7,6 +7,8 @@ import java.util.Map;
 
 public interface IConfiguration {
 
+    TelnetConfig getTelnetConfig();
+
     String getApplicationName();
 
     String getExposeIp();
