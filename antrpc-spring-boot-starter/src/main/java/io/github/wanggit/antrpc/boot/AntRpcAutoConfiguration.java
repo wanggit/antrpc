@@ -120,6 +120,7 @@ public class AntRpcAutoConfiguration {
         configuration.setRpcClientsConfig(rpcProperties.getRpcClientsConfig());
         configuration.setCodecConfig(rpcProperties.getCodecConfig());
         configuration.setSerializeConfig(rpcProperties.getSerializeConfig());
+        configuration.setTelnetConfig(rpcProperties.getTelnetConfig());
     }
 
     private Map<String, String> getCircuitBreakerConfigMap(Binder binder) {

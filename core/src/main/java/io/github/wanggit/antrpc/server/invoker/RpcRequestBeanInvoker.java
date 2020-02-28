@@ -7,16 +7,43 @@ import io.github.wanggit.antrpc.server.invoker.exception.ClassNotLoadException;
 import io.github.wanggit.antrpc.server.invoker.exception.MethodNotFoundException;
 import io.github.wanggit.antrpc.server.utils.CacheClassUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
 
     private final BeanFactory springBeanFactory;
+
+    private final Map<String, List<IRpcRequestBeanInvokeListener>> listeners = new HashMap<>();
+
+    private final ThreadPoolExecutor listenerThreadPoolExecutor =
+            new ThreadPoolExecutor(
+                    2,
+                    4,
+                    2,
+                    TimeUnit.SECONDS,
+                    new ArrayBlockingQueue<>(10),
+                    new RejectedExecutionHandler() {
+                        @Override
+                        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            if (log.isWarnEnabled()) {
+                                log.warn(
+                                        "The log queue is full and some listen will be discarded.");
+                            }
+                        }
+                    });
 
     public RpcRequestBeanInvoker(BeanFactory beanFactory) {
         this.springBeanFactory = beanFactory;
@@ -30,6 +57,7 @@ public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
         String className = requestBean.getFullClassName();
         String methodName = requestBean.getMethodName();
         List<String> argumentTypes = requestBean.getArgumentTypes();
+        String fullName = getFullName(className, methodName, argumentTypes);
         Object[] argumentValues = requestBean.getArgumentValues();
         try {
             Class clazz = internalGetClass(className);
@@ -45,14 +73,64 @@ public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
                         "No " + methodName + " method is found in class " + className);
             }
             Object result = ReflectionUtils.invokeMethod(method, bean, argumentValues);
-            return response(requestBean, result);
+            RpcResponseBean responseBean = response(requestBean, result);
+            asyncFireListener(fullName, responseBean, argumentValues);
+            return responseBean;
         } catch (Throwable throwable) {
             if (log.isErrorEnabled()) {
                 log.error("An exception occurred ", throwable);
             }
-            return response(
-                    requestBean,
-                    RpcErrorCreator.create(throwable.getClass().getName(), throwable.getMessage()));
+            RpcResponseBean responseBean =
+                    response(
+                            requestBean,
+                            RpcErrorCreator.create(
+                                    throwable.getClass().getName(), throwable.getMessage()));
+            asyncFireListener(fullName, responseBean, argumentValues);
+            return responseBean;
+        }
+    }
+
+    private String getFullName(String className, String methodName, List<String> argumentTypes) {
+        return className
+                + "#"
+                + methodName
+                + "("
+                + (null == argumentTypes ? "" : StringUtils.join(argumentTypes, ","))
+                + ")";
+    }
+
+    private void asyncFireListener(String name, Object result, Object[] arguments) {
+        listenerThreadPoolExecutor.submit(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        List<IRpcRequestBeanInvokeListener> iRpcRequestBeanInvokeListeners =
+                                listeners.get(name);
+                        if (null != iRpcRequestBeanInvokeListeners) {
+                            iRpcRequestBeanInvokeListeners.forEach(
+                                    it -> {
+                                        it.listen(result, arguments);
+                                    });
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void addListener(
+            String name, IRpcRequestBeanInvokeListener rpcRequestBeanInvokeListener) {
+        if (!listeners.containsKey(name)) {
+            listeners.put(name, new ArrayList<>());
+        }
+        listeners.get(name).add(rpcRequestBeanInvokeListener);
+    }
+
+    @Override
+    public void removeListener(
+            String name, IRpcRequestBeanInvokeListener rpcRequestBeanInvokeListener) {
+        List<IRpcRequestBeanInvokeListener> iRpcRequestBeanInvokeListeners = listeners.get(name);
+        if (null != iRpcRequestBeanInvokeListeners) {
+            iRpcRequestBeanInvokeListeners.remove(rpcRequestBeanInvokeListener);
         }
     }
 

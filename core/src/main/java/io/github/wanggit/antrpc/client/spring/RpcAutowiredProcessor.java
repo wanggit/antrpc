@@ -7,7 +7,9 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
@@ -31,7 +33,6 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
         if (debugEnabled) {
             log.debug(builder.append("\n").toString());
         }
-        infoWrappers.clear();
     }
 
     @Override
@@ -43,6 +44,15 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
             infoWrappers.add(new InfoWrapper(bean, field));
         }
         return fields.length > 0;
+    }
+
+    @Override
+    public Set<String> snapshot() {
+        Set<String> set = new HashSet<>();
+        for (InfoWrapper wrapper : infoWrappers) {
+            set.add(wrapper.getField().getType().getName());
+        }
+        return set;
     }
 
     static class InfoWrapper {

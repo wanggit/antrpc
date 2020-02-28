@@ -20,6 +20,9 @@ public class RegisterBean {
 
     private Integer port;
 
+    /** 可能因为telnet暂停 */
+    private boolean pause;
+
     String getZookeeperFullPath(String exposeIp) {
         return "/"
                 + ConstantValues.ZK_ROOT_NODE_NAME

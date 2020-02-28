@@ -35,6 +35,8 @@ class RpcProperties {
 
     @NestedConfigurationProperty private CodecConfig codecConfig;
 
+    @NestedConfigurationProperty private TelnetConfig telnetConfig;
+
     @NestedConfigurationProperty private SerializeConfig serializeConfig;
 
     /** direct rpc host -> ip:port */

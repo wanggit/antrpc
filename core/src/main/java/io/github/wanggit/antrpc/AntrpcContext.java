@@ -25,12 +25,15 @@ import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.codec.serialize.SerializerHolder;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
+import io.github.wanggit.antrpc.commons.config.TelnetConfig;
 import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import io.github.wanggit.antrpc.server.IServer;
 import io.github.wanggit.antrpc.server.RpcServer;
 import io.github.wanggit.antrpc.server.exception.RpcServerStartErrorException;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.github.wanggit.antrpc.server.invoker.RpcRequestBeanInvoker;
+import io.github.wanggit.antrpc.server.telnet.ITelnetServer;
+import io.github.wanggit.antrpc.server.telnet.TelnetServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -88,6 +91,8 @@ public class AntrpcContext implements IAntrpcContext {
     private IRegister register;
 
     private IServer server;
+
+    private ITelnetServer telnetServer;
 
     private IRpcClients rpcClients;
 
@@ -267,6 +272,7 @@ public class AntrpcContext implements IAntrpcContext {
                     nodeHostContainer);
             this.initRpcAutowiredProcessor(beanContainer);
             this.startServer(configuration, codecHolder, rpcRequestBeanInvoker, serializerHolder);
+            this.startTelnetServer(configuration);
             if (log.isInfoEnabled()) {
                 log.info(
                         "Antrpc startup completed, "
@@ -283,6 +289,7 @@ public class AntrpcContext implements IAntrpcContext {
         }
         this.register.unregister(configuration, zkNodeBuilder);
         this.server.close();
+        this.telnetServer.close();
     }
 
     private void doAntRpcBeanAnnotationCheck(ConfigurableListableBeanFactory beanFactory) {
@@ -512,6 +519,20 @@ public class AntrpcContext implements IAntrpcContext {
                 rpcServer.setActive();
             } catch (InterruptedException e) {
                 throw new RpcServerStartErrorException("Antrpc server failed to start.", e);
+            }
+        }
+    }
+
+    private void startTelnetServer(IConfiguration configuration) {
+        TelnetConfig telnetConfig = configuration.getTelnetConfig();
+        if (null != telnetConfig && null != telnetConfig.getEnable() && telnetConfig.getEnable()) {
+            this.telnetServer = new TelnetServer(this, applicationContext);
+            try {
+                this.telnetServer.start(telnetConfig);
+            } catch (Exception e) {
+                if (log.isErrorEnabled()) {
+                    log.error("TelnetServer failed to start.", e);
+                }
             }
         }
     }

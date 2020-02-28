@@ -3,6 +3,8 @@ package io.github.wanggit.antrpc.client.spring;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class OnFailHolder implements IOnFailHolder {
@@ -22,5 +24,15 @@ public class OnFailHolder implements IOnFailHolder {
     @Override
     public void addOnFail(Class clazz, Object bean) {
         cache.put(clazz, bean);
+    }
+
+    @Override
+    public Map<String, String> snapshot() {
+        Map<String, String> map = new HashMap<>();
+        cache.forEach(
+                (key, value) -> {
+                    map.put(key.getName(), value.getClass().getName());
+                });
+        return map;
     }
 }

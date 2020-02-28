@@ -60,6 +60,9 @@ public class Configuration implements IConfiguration {
     /** Codec Config */
     private CodecConfig codecConfig;
 
+    /** Telnet Config */
+    private TelnetConfig telnetConfig;
+
     /** Serializer Config */
     private SerializeConfig serializeConfig;
 
@@ -68,6 +71,15 @@ public class Configuration implements IConfiguration {
 
     /** Application Name */
     private String appName;
+
+    @Override
+    public TelnetConfig getTelnetConfig() {
+        return telnetConfig;
+    }
+
+    public void setTelnetConfig(TelnetConfig telnetConfig) {
+        this.telnetConfig = telnetConfig;
+    }
 
     /**
      * 获取此服务的名称

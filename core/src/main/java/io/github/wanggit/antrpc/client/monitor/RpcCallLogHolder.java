@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.util.Date;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -23,6 +23,8 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
     private final ILogReporter logReporter;
 
     private final ThreadPoolExecutor threadPoolExecutor;
+
+    private final Map<String, List<IRpcCallLogListener>> listeners = new HashMap<>();
 
     public RpcCallLogHolder(IConfiguration configuration, ApplicationContext applicationContext)
             throws Exception {
@@ -68,8 +70,35 @@ public class RpcCallLogHolder implements IRpcCallLogHolder {
                 new Runnable() {
                     @Override
                     public void run() {
+                        fireListener(rpcCallLog);
                         logReporter.report(rpcCallLog);
                     }
                 });
+    }
+
+    private void fireListener(RpcCallLog rpcCallLog) {
+        String key = rpcCallLog.getClassName() + "#" + rpcCallLog.getMethodName();
+        List<IRpcCallLogListener> iRpcCallLogListeners = listeners.get(key);
+        if (null != iRpcCallLogListeners) {
+            for (IRpcCallLogListener rpcCallLogListener : iRpcCallLogListeners) {
+                rpcCallLogListener.listen(rpcCallLog);
+            }
+        }
+    }
+
+    @Override
+    public void addListener(String name, IRpcCallLogListener rpcCallLogListener) {
+        if (!listeners.containsKey(name)) {
+            listeners.put(name, new ArrayList<>());
+        }
+        listeners.get(name).add(rpcCallLogListener);
+    }
+
+    @Override
+    public void removeListener(String name, IRpcCallLogListener rpcCallLogListener) {
+        List<IRpcCallLogListener> iRpcCallLogListeners = listeners.get(name);
+        if (null != iRpcCallLogListeners) {
+            iRpcCallLogListeners.remove(rpcCallLogListener);
+        }
     }
 }

@@ -1,8 +1,15 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
+import io.github.wanggit.antrpc.client.zk.lb.ILoadBalancer;
+
 import java.util.List;
+import java.util.Map;
 
 public interface INodeHostContainer {
+
+    Map<String, List<NodeHostEntity>> entitiesSnapshot();
+
+    Map<String, ILoadBalancer<NodeHostEntity>> loadBalancersSnapshot();
 
     List<NodeHostEntity> getHostEntities(String className, String methodFullName);
 
