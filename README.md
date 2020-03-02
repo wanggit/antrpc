@@ -17,7 +17,7 @@ Another Tool for RPC
 16. 日志收集器
 17. 优雅停机
 18. 服务控制台（未完成）
-19. telnet命令运维（未完成测试用例）
+19. telnet命令运维
 
 
 ##### TODO
