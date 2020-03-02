@@ -8,11 +8,13 @@ import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvokeListener;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.github.wanggit.antrpc.server.telnet.CmdInfoBean;
 import io.github.wanggit.antrpc.server.telnet.handler.CmdDesc;
+import io.github.wanggit.antrpc.server.telnet.handler.command.util.ArrayClassNameUtil;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.List;
 import java.util.Map;
 
+/** 用于服务提供者端，查看本服务提供的此接口最近N次调用 */
 @CmdDesc(
         value = "trace",
         desc =
@@ -42,6 +44,11 @@ public class TraceCmd extends AbsCmd implements INeedChannelCmd {
         int idx = target.indexOf("#");
         String className = idx == -1 ? target : target.substring(0, idx);
         String methodName = idx == -1 ? "" : target.substring(idx + 1);
+        // test(int  , java.lang.Integer) -> test(int,java.lang.Integer)
+        methodName = methodName.replaceAll("\\s*,\\s*", ",");
+        // testIntArray(java.lang.String, int[]) -> testIntArray(java.lang.String, [I)
+        // testIntArray(java.lang.String[], int[]) -> testIntArray([Ljava.lang.String;, [I)
+        methodName = ArrayClassNameUtil.replaceArrayClassName(methodName);
         RegisterBean registerBean = register.findRegisterBeanByClassName(className);
         if (null == registerBean) {
             return "this service is not registered with the " + className + " interface";

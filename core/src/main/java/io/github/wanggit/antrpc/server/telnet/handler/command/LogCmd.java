@@ -7,6 +7,7 @@ import io.github.wanggit.antrpc.client.monitor.IRpcCallLogListener;
 import io.github.wanggit.antrpc.commons.bean.RpcCallLog;
 import io.github.wanggit.antrpc.server.telnet.CmdInfoBean;
 import io.github.wanggit.antrpc.server.telnet.handler.CmdDesc;
+import io.github.wanggit.antrpc.server.telnet.handler.command.util.ArrayClassNameUtil;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.Map;
@@ -35,6 +36,12 @@ public class LogCmd extends AbsCmd implements INeedChannelCmd {
             return "command format error.";
         }
         String target = arguments[0].trim();
+        // test(int  , java.lang.Integer) -> test(int,java.lang.Integer)
+        target = target.replaceAll("\\s*,\\s*", ",");
+        // testIntArray(java.lang.String, int[]) -> testIntArray(java.lang.String, [I)
+        // testIntArray(java.lang.String[], int[]) -> testIntArray([Ljava.lang.String;, [I)
+        target = ArrayClassNameUtil.replaceArrayClassName(target);
+        String fullName = target;
         int times = 0;
         try {
             times = Integer.parseInt(arguments[1].trim());
@@ -44,19 +51,19 @@ public class LogCmd extends AbsCmd implements INeedChannelCmd {
         IRpcCallLogHolder rpcCallLogHolder = getAntrpcContext().getRpcCallLogHolder();
         int max = times;
         rpcCallLogHolder.addListener(
-                target,
+                fullName,
                 new IRpcCallLogListener() {
                     private int count;
 
                     @Override
                     public void listen(RpcCallLog rpcCallLog) {
                         if (context.isRemoved()) {
-                            rpcCallLogHolder.removeListener(target, this);
+                            rpcCallLogHolder.removeListener(fullName, this);
                         }
                         count++;
                         context.writeAndFlush(JSONObject.toJSONString(rpcCallLog) + "\r\n");
                         if (count >= max) {
-                            rpcCallLogHolder.removeListener(target, this);
+                            rpcCallLogHolder.removeListener(fullName, this);
                         }
                     }
                 });

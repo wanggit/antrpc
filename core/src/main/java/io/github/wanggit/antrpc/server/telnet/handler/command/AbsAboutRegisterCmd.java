@@ -35,7 +35,7 @@ abstract class AbsAboutRegisterCmd extends AbsCmd {
         builder.append(
                 "\t"
                         + bean.getClassName()
-                        + " Suspend registration ***"
+                        + "\tSuspend Registration ***"
                         + bean.isPause()
                         + "***\r\n");
     }

@@ -288,8 +288,12 @@ public class AntrpcContext implements IAntrpcContext {
             log.info("AntrpcContext is being destroyed.");
         }
         this.register.unregister(configuration, zkNodeBuilder);
-        this.server.close();
-        this.telnetServer.close();
+        if (null != this.server) {
+            this.server.close();
+        }
+        if (null != this.telnetServer) {
+            this.telnetServer.close();
+        }
     }
 
     private void doAntRpcBeanAnnotationCheck(ConfigurableListableBeanFactory beanFactory) {

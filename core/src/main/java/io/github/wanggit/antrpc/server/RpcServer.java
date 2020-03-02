@@ -84,7 +84,9 @@ public class RpcServer implements IServer {
         if (log.isInfoEnabled()) {
             log.info("Antrpc Server is being destroyed.");
         }
-        channel.close();
+        if (null != channel) {
+            channel.close();
+        }
         workerGroup.shutdownGracefully();
         bossGroup.shutdownGracefully();
     }

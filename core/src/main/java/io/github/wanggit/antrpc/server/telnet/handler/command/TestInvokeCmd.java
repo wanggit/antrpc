@@ -7,6 +7,7 @@ import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
 import io.github.wanggit.antrpc.server.telnet.CmdInfoBean;
 import io.github.wanggit.antrpc.server.telnet.handler.CmdDesc;
+import io.github.wanggit.antrpc.server.telnet.handler.command.util.ArrayClassNameUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+/** 可以用于测试注册中心Zookeeper中所有已注册的接口 */
 @Slf4j
 @CmdDesc(
         value = "test",
@@ -55,6 +57,11 @@ public class TestInvokeCmd extends AbsCmd {
             }
             int idx = fullArgs.indexOf("|");
             String fullMethodName = idx == -1 ? fullArgs : fullArgs.substring(0, idx).trim();
+            // test(int  , java.lang.Integer) -> test(int,java.lang.Integer)
+            fullMethodName = fullMethodName.replaceAll("\\s*,\\s*", ",");
+            // testIntArray(java.lang.String, int[]) -> testIntArray(java.lang.String, [I)
+            // testIntArray(java.lang.String[], int[]) -> testIntArray([Ljava.lang.String;, [I)
+            fullMethodName = ArrayClassNameUtil.replaceArrayClassName(fullMethodName);
             String[] args =
                     idx == -1
                             ? new String[0]
