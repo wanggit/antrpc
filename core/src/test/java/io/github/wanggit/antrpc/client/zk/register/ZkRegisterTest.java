@@ -67,7 +67,7 @@ public class ZkRegisterTest {
                 ApplicationNameUtil.getApplicationName(
                         configuration.getExposeIp(),
                         configuration.getApplicationName(),
-                        environment),
+                        configuration.getPort()),
                 ipNodeDataBean.getAppName());
         Assert.assertEquals(rpcPort, ipNodeDataBean.getRpcPort());
 

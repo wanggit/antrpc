@@ -171,7 +171,7 @@ public class ZkRegister implements IRegister {
                 ApplicationNameUtil.getApplicationName(
                         configuration.getExposeIp(),
                         configuration.getApplicationName(),
-                        configuration.getEnvironment()));
+                        configuration.getPort()));
         ipNodeDataBean.setTs(System.currentTimeMillis());
         ipNodeDataBean.setRpcPort(rpcPort);
         ipNodeDataBean.setHttpPort(
