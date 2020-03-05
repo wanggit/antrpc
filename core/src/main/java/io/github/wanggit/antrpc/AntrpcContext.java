@@ -26,6 +26,7 @@ import io.github.wanggit.antrpc.commons.codec.serialize.SerializerHolder;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.config.TelnetConfig;
+import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.utils.NetUtil;
 import io.github.wanggit.antrpc.server.IServer;
 import io.github.wanggit.antrpc.server.RpcServer;
@@ -274,6 +275,7 @@ public class AntrpcContext implements IAntrpcContext {
             this.startServer(configuration, codecHolder, rpcRequestBeanInvoker, serializerHolder);
             this.startTelnetServer(configuration);
             if (log.isInfoEnabled()) {
+                log.info(ConstantValues.BANNER);
                 log.info(
                         "Antrpc startup completed, "
                                 + (System.currentTimeMillis() - start)

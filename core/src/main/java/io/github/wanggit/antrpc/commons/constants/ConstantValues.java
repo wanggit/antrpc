@@ -43,4 +43,18 @@ public interface ConstantValues {
 
     /** 服务之间连接的熔断器状态检查时间周期，表示10秒内出现5次连接断开，就打开熔断器 */
     int CONNECTION_CIRCUIT_BREAKER_CHECK_INTERVAL_SECONDS = 20;
+
+    String BANNER =
+            "\n"
+                    + "                                                                             \n"
+                    + "       db                              88888888ba                            \n"
+                    + "      d88b                      ,d     88      \"8b                           \n"
+                    + "     d8'`8b                     88     88      ,8P                           \n"
+                    + "    d8'  `8b      8b,dPPYba,  MM88MMM  88aaaaaa8P'  8b,dPPYba,    ,adPPYba,  \n"
+                    + "   d8YaaaaY8b     88P'   `\"8a   88     88\"\"\"\"88'    88P'    \"8a  a8\"     \"\"  \n"
+                    + "  d8\"\"\"\"\"\"\"\"8b    88       88   88     88    `8b    88       d8  8b          \n"
+                    + " d8'        `8b   88       88   88,    88     `8b   88b,   ,a8\"  \"8a,   ,aa  \n"
+                    + "d8'          `8b  88       88   \"Y888  88      `8b  88`YbbdP\"'    `\"Ybbd8\"'  \n"
+                    + "                                                    88                       \n"
+                    + "                                                    88                       \n";
 }
