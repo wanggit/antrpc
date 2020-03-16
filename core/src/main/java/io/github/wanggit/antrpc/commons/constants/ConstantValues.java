@@ -26,6 +26,9 @@ public interface ConstantValues {
     /** 注册ZK节点的根命名空间 */
     String ZK_ROOT_NODE_NAME = "__rpc_na__";
 
+    /** 订阅信息的ZK节点根命名空间 */
+    String ZK_ROOT_SUBSCRIBE_NODE_NAME = "__rpc_sub__";
+
     /** rpc的默认端口 */
     int RPC_DEFAULT_PORT = 6060;
 

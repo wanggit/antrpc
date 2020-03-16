@@ -1,12 +1,7 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
 import org.apache.curator.framework.recipes.cache.ChildData;
-import org.apache.zookeeper.CreateMode;
 
-public interface IZkNodeBuilder {
+public interface IZkNodeBuilder extends IZkNodeOperator {
     ZkNode build(ZkNodeType.Type type, ChildData childData);
-
-    void remoteCreateZkNode(String zkFullpath, byte[] nodeData, CreateMode createMode);
-
-    void deleteNode(String zookeeperFullPath);
 }

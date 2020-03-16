@@ -1,6 +1,10 @@
 package io.github.wanggit.antrpc.client.spring;
 
+import io.github.wanggit.antrpc.client.zk.zknode.IReportSubscriber;
+import io.github.wanggit.antrpc.client.zk.zknode.SubscribeNode;
 import io.github.wanggit.antrpc.commons.annotations.RpcAutowired;
+import io.github.wanggit.antrpc.commons.config.IConfiguration;
+import io.github.wanggit.antrpc.commons.utils.ApplicationNameUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.util.ReflectionUtils;
@@ -17,11 +21,23 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
     private final List<InfoWrapper> infoWrappers = new ArrayList<>();
 
     @Override
-    public void init(BeanContainer beanContainer) {
+    public void init(
+            BeanContainer beanContainer,
+            IReportSubscriber reportSubscriber,
+            IConfiguration configuration) {
         boolean debugEnabled = log.isDebugEnabled();
         StringBuilder builder = new StringBuilder("RpcAutowired Details => ");
         for (InfoWrapper infoWrapper : infoWrappers) {
-            Object proxy = beanContainer.getOrCreateBean(infoWrapper.getField().getType());
+            Class<?> type = infoWrapper.getField().getType();
+            SubscribeNode subscribeNode = new SubscribeNode();
+            subscribeNode.setClassName(type.getName());
+            subscribeNode.setHost(
+                    ApplicationNameUtil.getApplicationName(
+                            configuration.getExposeIp(),
+                            configuration.getApplicationName(),
+                            configuration.getPort()));
+            reportSubscriber.report(subscribeNode);
+            Object proxy = beanContainer.getOrCreateBean(type);
             ReflectionUtils.setField(infoWrapper.getField(), infoWrapper.getBean(), proxy);
             if (debugEnabled) {
                 builder.append("\n bean=")

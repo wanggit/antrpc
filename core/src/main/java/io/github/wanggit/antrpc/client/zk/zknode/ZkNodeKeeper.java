@@ -37,7 +37,33 @@ public final class ZkNodeKeeper implements IZkNodeKeeper, Runnable {
     }
 
     @Override
-    public void keep() {
+    public void keepSubscribeNodes() {
+        String root = "/" + ConstantValues.ZK_ROOT_SUBSCRIBE_NODE_NAME;
+        List<String> paths = childrenNode(root);
+        if (null != paths && !paths.isEmpty()) {
+            for (int i = 0; i < paths.size(); i++) {
+                String subPath =
+                        "/" + ConstantValues.ZK_ROOT_SUBSCRIBE_NODE_NAME + "/" + paths.get(i);
+                List<String> subNodes = childrenNode(subPath);
+                if (null == subNodes || subNodes.isEmpty()) {
+                    try {
+                        curator.delete().forPath(subPath);
+                    } catch (Exception e) {
+                        if (log.isErrorEnabled()) {
+                            log.error(
+                                    "An exception occurred while clearing the "
+                                            + subPath
+                                            + " expiration node. It is possible that other nodes have already deleted it.",
+                                    e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void keepRegisterNodes() {
         String root = "/" + ConstantValues.ZK_ROOT_NODE_NAME;
         List<String> paths = childrenNode(root);
         if (null != paths && !paths.isEmpty()) {
@@ -91,7 +117,8 @@ public final class ZkNodeKeeper implements IZkNodeKeeper, Runnable {
 
     @Override
     public void run() {
-        keep();
+        keepRegisterNodes();
+        keepSubscribeNodes();
     }
 
     private List<String> childrenNode(String path) {
