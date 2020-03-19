@@ -18,6 +18,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.wanggit</groupId>
+            <artifactId>antrpc-commons</artifactId>
+            <version>${antrpc-commons.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-recipes</artifactId>
             <version>${curator-recipes.version}</version>

@@ -15,9 +15,8 @@
     <version>2.0.3-SNAPSHOT</version>
     <modules>
         <module>core</module>
-        <!--<module>monitor</module>-->
         <module>antrpc-spring-boot-starter</module>
-        <!--<module>antrpc-test</module>-->
+        <module>antrpc-commons</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -77,6 +76,7 @@
     <properties>
         <spring-boot.version>2.1.0.RELEASE</spring-boot.version>
         <antrpc-core.version>2.0.3-SNAPSHOT</antrpc-core.version>
+        <antrpc-commons.version>2.0.3-SNAPSHOT</antrpc-commons.version>
 
         <spring-kafka.version>2.4.1.RELEASE</spring-kafka.version>
         <curator-recipes.version>2.13.0</curator-recipes.version>
