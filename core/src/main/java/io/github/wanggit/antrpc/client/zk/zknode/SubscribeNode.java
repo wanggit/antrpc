@@ -11,4 +11,6 @@ public class SubscribeNode implements Serializable {
     private String host;
 
     private String className;
+
+    private Long ts;
 }

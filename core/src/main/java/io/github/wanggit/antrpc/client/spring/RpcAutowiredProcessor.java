@@ -36,6 +36,7 @@ public class RpcAutowiredProcessor implements IRpcAutowiredProcessor {
                             configuration.getExposeIp(),
                             configuration.getApplicationName(),
                             configuration.getPort()));
+            subscribeNode.setTs(System.currentTimeMillis());
             reportSubscriber.report(subscribeNode);
             Object proxy = beanContainer.getOrCreateBean(type);
             ReflectionUtils.setField(infoWrapper.getField(), infoWrapper.getBean(), proxy);
