@@ -27,7 +27,7 @@ public abstract class ArrayClassNameUtil {
         for (Map.Entry<String, String> entry : ARRAY_CLASS_NAMES.entrySet()) {
             fullMethodName = StringUtils.replace(fullMethodName, entry.getKey(), entry.getValue());
         }
-        fullMethodName = fullMethodName.replaceAll("([\\w.]+)\\[\\]", "[L$1;");
+        fullMethodName = fullMethodName.replaceAll("([\\w._$]+)\\[\\]", "[L$1;");
         return fullMethodName;
     }
 }

@@ -117,6 +117,10 @@ public class AntrpcContext implements IAntrpcContext {
 
     private CallerProxyMethodInterceptor callerProxyMethodInterceptor;
 
+    private IReportSubscriber reportSubscriber;
+
+    private IZkNodeOperator zkNodeOperator;
+
     public AntrpcContext(IConfiguration configuration) {
         this.configuration = configuration;
     }
@@ -271,7 +275,9 @@ public class AntrpcContext implements IAntrpcContext {
                     rpcClients,
                     serializerHolder,
                     nodeHostContainer);
-            this.initRpcAutowiredProcessor(beanContainer);
+            this.initZkNodeOperator(zkClient);
+            this.initReportSubscriber(zkNodeOperator);
+            this.initRpcAutowiredProcessor(beanContainer, reportSubscriber, configuration);
             this.startServer(configuration, codecHolder, rpcRequestBeanInvoker, serializerHolder);
             this.startTelnetServer(configuration);
             if (log.isInfoEnabled()) {
@@ -282,6 +288,14 @@ public class AntrpcContext implements IAntrpcContext {
                                 + "ms was used.");
             }
         }
+    }
+
+    private void initZkNodeOperator(IZkClient zkClient) {
+        this.zkNodeOperator = new ZkNodeOperator(zkClient.getCurator());
+    }
+
+    private void initReportSubscriber(IZkNodeOperator zkNodeOperator) {
+        this.reportSubscriber = new ReportSubscribe(zkNodeOperator);
     }
 
     @Override
@@ -341,11 +355,14 @@ public class AntrpcContext implements IAntrpcContext {
         }
     }
 
-    private void initRpcAutowiredProcessor(BeanContainer beanContainer) {
+    private void initRpcAutowiredProcessor(
+            BeanContainer beanContainer,
+            IReportSubscriber reportSubscriber,
+            IConfiguration configuration) {
         if (null == beanContainer) {
             throw new IllegalArgumentException();
         }
-        rpcAutowiredProcessor.init(beanContainer);
+        rpcAutowiredProcessor.init(beanContainer, reportSubscriber, configuration);
     }
 
     private void initOnFailProcessor(IOnFailHolder onFailHolder) {
@@ -360,7 +377,8 @@ public class AntrpcContext implements IAntrpcContext {
             throw new IllegalArgumentException();
         }
         this.zkNodeKeeper = new ZkNodeKeeper(zkClient, zkNodeBuilder);
-        this.zkNodeKeeper.keep();
+        this.zkNodeKeeper.keepRegisterNodes();
+        this.zkNodeKeeper.keepSubscribeNodes();
     }
 
     private void initListener(
