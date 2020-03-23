@@ -1,7 +1,7 @@
 package io.github.wanggit.antrpc.boot;
 
-import io.github.wanggit.antrpc.client.Host;
 import io.github.wanggit.antrpc.client.zk.zknode.DirectNodeHostEntity;
+import io.github.wanggit.antrpc.commons.bean.Host;
 import io.github.wanggit.antrpc.commons.config.CircuitBreakerConfig;
 import io.github.wanggit.antrpc.commons.config.IConfiguration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;

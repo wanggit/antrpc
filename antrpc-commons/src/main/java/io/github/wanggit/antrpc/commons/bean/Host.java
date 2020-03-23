@@ -1,4 +1,4 @@
-package io.github.wanggit.antrpc.client;
+package io.github.wanggit.antrpc.commons.bean;
 
 import lombok.Data;
 import lombok.ToString;

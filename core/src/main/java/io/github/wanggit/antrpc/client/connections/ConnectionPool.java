@@ -1,7 +1,7 @@
 package io.github.wanggit.antrpc.client.connections;
 
-import io.github.wanggit.antrpc.client.Host;
 import io.github.wanggit.antrpc.commons.bean.HeartBeatCreator;
+import io.github.wanggit.antrpc.commons.bean.Host;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;

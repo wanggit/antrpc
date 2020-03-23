@@ -1,6 +1,6 @@
 package io.github.wanggit.antrpc.client.zk.lb;
 
-import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.commons.bean.Host;
 
 abstract class AbstractLoadBalancer<T extends Host> implements ILoadBalancer<T> {
 

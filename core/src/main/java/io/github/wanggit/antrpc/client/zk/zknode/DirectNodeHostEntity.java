@@ -1,6 +1,6 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
-import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.commons.bean.Host;
 
 import java.util.List;
 

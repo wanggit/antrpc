@@ -1,9 +1,9 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
-import io.github.wanggit.antrpc.client.Host;
 import io.github.wanggit.antrpc.client.zk.lb.LoadBalancerHelper;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBeanHelper;
+import io.github.wanggit.antrpc.commons.bean.Host;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import org.junit.Assert;

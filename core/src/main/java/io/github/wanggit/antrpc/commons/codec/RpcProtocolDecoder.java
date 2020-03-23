@@ -13,23 +13,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
 
-    private static Integer HEADER_SIZE = 8;
-    private static Integer MAX_FRAME_LENGTH = 1024 * 1024;
-    private static Integer LENGTH_FIELD_LENGTH = 4;
-    private static Integer LENGTH_FIELD_OFFSET = 4;
-    private static Integer LENGTH_ADJUSTMENT = 0;
-    private static Integer INITIAL_BYTES_TO_STRIP = 0;
-
     private CodecConfig codecConfig;
     private ICodec codec;
 
     public RpcProtocolDecoder(CodecConfig codecConfig, ICodec codec) {
         super(
-                MAX_FRAME_LENGTH,
-                LENGTH_FIELD_OFFSET,
-                LENGTH_FIELD_LENGTH,
-                LENGTH_ADJUSTMENT,
-                INITIAL_BYTES_TO_STRIP);
+                ConstantValues.DECODER_MAX_FRAME_LENGTH,
+                ConstantValues.DECODER_LENGTH_FIELD_OFFSET,
+                ConstantValues.DECODER_LENGTH_FIELD_LENGTH,
+                ConstantValues.DECODER_LENGTH_ADJUSTMENT,
+                ConstantValues.DECODER_INITIAL_BYTES_TO_STRIP);
         this.codecConfig = codecConfig;
         this.codec = codec;
     }
@@ -40,7 +33,7 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
             return null;
         }
 
-        if (byteBuf.readableBytes() <= HEADER_SIZE) {
+        if (byteBuf.readableBytes() <= ConstantValues.DECODER_HEADER_SIZE) {
             return null;
         }
 
@@ -49,6 +42,9 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
         byte type = byteBuf.readByte();
         byte wasCodec = byteBuf.readByte();
         byte zip = byteBuf.readByte();
+        // 因为header还冗余9个节点，所以再读9个字节
+        byteBuf.readBytes(9);
+        // 读body长度
         int len = byteBuf.readInt();
         if (byteBuf.readableBytes() < len) {
             byteBuf.resetReaderIndex();

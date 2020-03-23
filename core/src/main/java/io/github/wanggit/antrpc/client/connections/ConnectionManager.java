@@ -1,6 +1,6 @@
 package io.github.wanggit.antrpc.client.connections;
 
-import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.commons.bean.Host;
 
 public interface ConnectionManager {
     Connection getConnection(Host host);

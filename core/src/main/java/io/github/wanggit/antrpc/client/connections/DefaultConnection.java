@@ -43,8 +43,8 @@ public class DefaultConnection implements Connection {
             heartBeatCounter.receive(cmdId);
         }
         if (heartBeatCounter.heartBeatWasContinuousLoss()) {
-            if (log.isInfoEnabled()) {
-                log.info(
+            if (log.isErrorEnabled()) {
+                log.error(
                         "Heartbeat packets lost more than 5 times, this connection will be closed.");
             }
             connectionPool.invalidateObject(this);

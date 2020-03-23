@@ -1,6 +1,6 @@
 package io.github.wanggit.antrpc.client.connections;
 
-import io.github.wanggit.antrpc.client.Host;
+import io.github.wanggit.antrpc.commons.bean.Host;
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
 import io.netty.channel.local.LocalServerChannel;

@@ -1,6 +1,7 @@
 package io.github.wanggit.antrpc.client;
 
 import io.github.wanggit.antrpc.commons.IRpcClients;
+import io.github.wanggit.antrpc.commons.bean.Host;
 import io.github.wanggit.antrpc.commons.codec.cryption.ICodecHolder;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
 import io.github.wanggit.antrpc.commons.config.CodecConfig;

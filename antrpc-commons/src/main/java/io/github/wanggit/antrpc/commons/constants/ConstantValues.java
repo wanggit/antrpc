@@ -23,6 +23,26 @@ public interface ConstantValues {
     /** 是否需要压缩 */
     int NEED_COMPRESS_LENGTH = 1024;
 
+    int DECODER_HEADER_SIZE = 16;
+
+    /** 发送的数据包最大长度 */
+    int DECODER_MAX_FRAME_LENGTH = 1024 * 1024;
+
+    /** 长度域偏移量，指的是长度域位于整个数据包字节数组中的下标。0表示长度在第一个字节 */
+    int DECODER_LENGTH_FIELD_OFFSET = 0;
+
+    /** 长度域的自己的字节数长度 */
+    int DECODER_LENGTH_FIELD_LENGTH = 4;
+
+    /**
+     * 长度域的偏移量矫正。 如果长度域的值，除了包含有效数据域的长度外， 还包含了其他域（如长度域自身）长度， 那么，就需要进行矫正。矫正的值为：包长 - 长度域的值 – 长度域偏移 –
+     * 长度域长
+     */
+    int DECODER_LENGTH_ADJUSTMENT = 0;
+
+    /** 丢弃的起始字节数。丢弃处于有效数据前面的字节数量。比如前面有4个节点的长度域，则它的值为4 */
+    int DECODER_INITIAL_BYTES_TO_STRIP = 4;
+
     /** 注册ZK节点的根命名空间 */
     String ZK_ROOT_NODE_NAME = "__rpc_na__";
 

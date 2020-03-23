@@ -5,6 +5,7 @@ import io.github.wanggit.antrpc.IAntrpcContext;
 import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.client.zk.zknode.INodeHostContainer;
 import io.github.wanggit.antrpc.client.zk.zknode.NodeHostEntity;
+import io.github.wanggit.antrpc.commons.utils.CastValueTo;
 import io.github.wanggit.antrpc.server.telnet.CmdInfoBean;
 import io.github.wanggit.antrpc.server.telnet.handler.CmdDesc;
 import io.github.wanggit.antrpc.server.telnet.handler.command.util.ArrayClassNameUtil;
@@ -13,14 +14,10 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 
-/** 可以用于测试注册中心Zookeeper中所有已注册的接口 */
+/** 可以用于测试本节点提供的或者引用的接口 */
 @Slf4j
 @CmdDesc(
         value = "test",
@@ -69,7 +66,14 @@ public class TestInvokeCmd extends AbsCmd {
             int idxShape = fullMethodName.indexOf("#");
             String className = fullMethodName.substring(0, idxShape);
             String methodName = fullMethodName.substring(idxShape + 1);
-            Class<?> clazz = Class.forName(className);
+            Class<?> clazz = null;
+            try {
+                clazz = Class.forName(className);
+            } catch (ClassNotFoundException e) {
+                return "The current node does not refer to this "
+                        + className
+                        + " interface, please try another node.";
+            }
             Object proxy = getAntrpcContext().getBeanContainer().getOrCreateBean(clazz);
             List<NodeHostEntity> nodeHostEntities = entitiesSnapshot.get(fullMethodName);
             if (null == nodeHostEntities || nodeHostEntities.isEmpty()) {
@@ -98,7 +102,7 @@ public class TestInvokeCmd extends AbsCmd {
             for (int i = 0; i < args.length; i++) {
                 Class parameterType = parameterTypes[i];
                 String value = args[i].trim();
-                realTypeArgs[i] = castValueToType(value, parameterType);
+                realTypeArgs[i] = CastValueTo.cast(value, parameterType);
             }
             Object result = ReflectionUtils.invokeMethod(method, proxy, realTypeArgs);
             return JSONObject.toJSONString(result);
@@ -109,41 +113,5 @@ public class TestInvokeCmd extends AbsCmd {
                 entitiesSnapshot.clear();
             }
         }
-    }
-
-    private Object castValueToType(String value, Class parameterType) {
-        if (short.class.equals(parameterType) || Short.class.equals(parameterType)) {
-            return Short.parseShort(value);
-        }
-        if (int.class.equals(parameterType) || Integer.class.equals(parameterType)) {
-            return Integer.parseInt(value);
-        }
-        if (long.class.equals(parameterType) || Long.class.equals(parameterType)) {
-            return Long.parseLong(value);
-        }
-        if (float.class.equals(parameterType) || Float.class.equals(parameterType)) {
-            return Float.parseFloat(value);
-        }
-        if (double.class.equals(parameterType) || Double.class.equals(parameterType)) {
-            return Long.parseLong(value);
-        }
-        if (BigDecimal.class.equals(parameterType)) {
-            return new BigDecimal(value);
-        }
-        if (BigInteger.class.equals(parameterType)) {
-            return new BigInteger(value);
-        }
-        if (String.class.equals(parameterType)) {
-            return value;
-        }
-        if (ClassUtils.isPrimitiveArray(parameterType)
-                || ClassUtils.isPrimitiveWrapperArray(parameterType)
-                || List.class.equals(parameterType)
-                || Map.class.equals(parameterType)
-                || Set.class.equals(parameterType)
-                || Vector.class.equals(parameterType)) {
-            return JSONObject.parseObject(value, parameterType);
-        }
-        return JSONObject.parseObject(value, parameterType);
     }
 }

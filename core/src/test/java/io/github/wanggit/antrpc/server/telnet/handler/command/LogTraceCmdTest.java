@@ -101,7 +101,7 @@ public class LogTraceCmdTest {
                 new AbsServerResponseListener() {
                     @Override
                     protected void internalCheckBuffer(String content) {
-                        Assert.assertEquals(5, StringUtils.countMatches(content, "argumentValues"));
+                        Assert.assertTrue(StringUtils.countMatches(content, "argumentValues") >= 5);
                     }
                 };
         TelnetClient traceTelnetClient =
