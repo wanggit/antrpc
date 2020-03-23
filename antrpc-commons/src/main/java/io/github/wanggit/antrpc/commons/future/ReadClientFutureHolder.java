@@ -1,4 +1,4 @@
-package io.github.wanggit.antrpc.client.future;
+package io.github.wanggit.antrpc.commons.future;
 
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializer;
