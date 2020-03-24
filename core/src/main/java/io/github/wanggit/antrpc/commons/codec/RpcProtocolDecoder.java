@@ -42,8 +42,9 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
         byte type = byteBuf.readByte();
         byte wasCodec = byteBuf.readByte();
         byte zip = byteBuf.readByte();
-        // 因为header还冗余9个节点，所以再读9个字节
-        byteBuf.readBytes(9);
+        byte serialzer = byteBuf.readByte();
+        // 因为header还冗余8个字节，所以再读8个字节
+        byteBuf.readBytes(8);
         // 读body长度
         int len = byteBuf.readInt();
         if (byteBuf.readableBytes() < len) {
@@ -59,6 +60,7 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
             protocol.setData(data);
             protocol.setCmdId(cmdId);
             protocol.setZip(zip);
+            protocol.setSerializer(serialzer);
             return protocol;
         } else if (type == ConstantValues.BIZ_TYPE) {
             if (zip == ConstantValues.COMPRESSED) {
@@ -79,6 +81,7 @@ public class RpcProtocolDecoder extends LengthFieldBasedFrameDecoder {
             protocol.setData(data);
             protocol.setCmdId(cmdId);
             protocol.setZip(zip);
+            protocol.setSerializer(serialzer);
             return protocol;
         }
         return null;

@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ReadClientFutureHolder {
 
     private static ConcurrentHashMap<Integer, ReadClientFuture> holders =
-            new ConcurrentHashMap<>(Short.MAX_VALUE, 0.75f, Short.MAX_VALUE);
+            new ConcurrentHashMap<>(Short.MAX_VALUE, 0.75f, 50);
 
     public static void receive(RpcProtocol rpcProtocol) {
         ReadClientFuture future = holders.remove(rpcProtocol.getCmdId());
