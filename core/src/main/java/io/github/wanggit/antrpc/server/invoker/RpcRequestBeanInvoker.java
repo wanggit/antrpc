@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.server.invoker;
 
+import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.commons.bean.RpcRequestBean;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
 import io.github.wanggit.antrpc.commons.bean.error.RpcErrorCreator;
@@ -72,7 +73,15 @@ public class RpcRequestBeanInvoker implements IRpcRequestBeanInvoker {
                 throw new MethodNotFoundException(
                         "No " + methodName + " method is found in class " + className);
             }
-            Object result = ReflectionUtils.invokeMethod(method, bean, argumentValues);
+            Object[] realArgumentValues = new Object[argumentValues.length];
+            for (int i = 0; i < argumentValues.length; i++) {
+                Object argumentValue = argumentValues[i];
+                if (!argTypes[i].isInstance(argumentValue) && argumentValue instanceof JSONObject) {
+                    argumentValue = ((JSONObject) argumentValue).toJavaObject(argTypes[i]);
+                }
+                realArgumentValues[i] = argumentValue;
+            }
+            Object result = ReflectionUtils.invokeMethod(method, bean, realArgumentValues);
             RpcResponseBean responseBean = response(requestBean, result);
             asyncFireListener(fullName, responseBean, argumentValues);
             return responseBean;

@@ -3,7 +3,11 @@ package io.github.wanggit.antrpc.commons.future;
 import io.github.wanggit.antrpc.commons.bean.RpcProtocol;
 import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializer;
+import io.github.wanggit.antrpc.commons.codec.serialize.SerializerFactory;
+import io.github.wanggit.antrpc.commons.codec.serialize.json.JsonSerializer;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -51,6 +55,17 @@ public class ReadClientFuture {
     void receive(RpcProtocol data) {
         try {
             lock.lock();
+            ISerializer newSerializerByByteCmd =
+                    SerializerFactory.getInstance()
+                            .createNewSerializerByByteCmd(data.getSerializer());
+            if (null != newSerializerByByteCmd) {
+                if (newSerializerByByteCmd instanceof JsonSerializer) {
+                    Map<String, String> configs = new HashMap<>();
+                    configs.put(JsonSerializer.TARGET_KEY, RpcResponseBean.class.getName());
+                    newSerializerByByteCmd.setConfigs(configs);
+                }
+                this.serializer = newSerializerByByteCmd;
+            }
             response = data;
             done.signal();
         } finally {

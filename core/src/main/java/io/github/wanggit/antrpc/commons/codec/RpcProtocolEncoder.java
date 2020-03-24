@@ -53,8 +53,9 @@ public class RpcProtocolEncoder extends MessageToByteEncoder<RpcProtocol> {
             out.writeByte(msg.getType());
             out.writeByte(ConstantValues.UNCODCED);
             out.writeByte(ConstantValues.UNCOMPRESSED);
-            // 9个字节的预留空间
-            out.writeBytes(new byte[9]);
+            out.writeByte(ConstantValues.DEFAULT_SERIALIZER);
+            // 8个字节的预留空间
+            out.writeBytes(new byte[8]);
             out.writeInt(msg.getData().length);
             out.writeBytes(msg.getData());
         } else {
@@ -83,8 +84,9 @@ public class RpcProtocolEncoder extends MessageToByteEncoder<RpcProtocol> {
             out.writeByte(msg.getType());
             out.writeByte(msg.getCodec());
             out.writeByte(msg.getZip());
-            // 9个字节的预留空间
-            out.writeBytes(new byte[9]);
+            out.writeByte(msg.getSerializer());
+            // 8个字节的预留空间
+            out.writeBytes(new byte[8]);
             out.writeInt(msg.getData().length);
             out.writeBytes(msg.getData());
         }

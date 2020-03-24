@@ -20,9 +20,21 @@ public interface ConstantValues {
     /** 是否已加密 */
     byte UNCODCED = 0x6;
 
+    /**
+     * 数据名协议中 未指定序列化与反序列化器, 默认使用全局的 io.github.wanggit.antrpc.commons.config.SerializeConfig 接口中的配置
+     */
+    byte DEFAULT_SERIALIZER = 0x7;
+
+    /** 数据包协议中指定 kryo序列化器 反序列化器 */
+    byte KRYO_SERIALIZER = 0x8;
+
+    /** 数据包协议中指定 json序列化器 反序列化器 */
+    byte JSON_SERIALIZER = 0x9;
+
     /** 是否需要压缩 */
     int NEED_COMPRESS_LENGTH = 1024;
 
+    /** 数据包头的长度，16个字节 */
     int DECODER_HEADER_SIZE = 16;
 
     /** 发送的数据包最大长度 */

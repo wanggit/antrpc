@@ -2,12 +2,18 @@ package io.github.wanggit.antrpc.server.handler;
 
 import com.alibaba.fastjson.JSONObject;
 import io.github.wanggit.antrpc.commons.bean.*;
+import io.github.wanggit.antrpc.commons.codec.serialize.ISerializer;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializerHolder;
+import io.github.wanggit.antrpc.commons.codec.serialize.SerializerFactory;
+import io.github.wanggit.antrpc.commons.codec.serialize.json.JsonSerializer;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.server.invoker.IRpcRequestBeanInvoker;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> {
@@ -27,8 +33,18 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
             RpcProtocol rpcProtocol = HeartBeatCreator.create(msg.getCmdId());
             ctx.channel().writeAndFlush(rpcProtocol);
         } else {
-            RpcRequestBean requestBean =
-                    (RpcRequestBean) serializerHolder.getSerializer().deserialize(msg.getData());
+            ISerializer serializer =
+                    SerializerFactory.getInstance()
+                            .createNewSerializerByByteCmd(msg.getSerializer());
+            if (null == serializer) {
+                serializer = serializerHolder.getSerializer();
+            }
+            if (serializer instanceof JsonSerializer) {
+                Map<String, String> config = new HashMap<>();
+                config.put(JsonSerializer.TARGET_KEY, RpcRequestBean.class.getName());
+                serializer.setConfigs(config);
+            }
+            RpcRequestBean requestBean = (RpcRequestBean) serializer.deserialize(msg.getData());
             if (log.isDebugEnabled()) {
                 log.debug(JSONObject.toJSONString(requestBean));
             }
@@ -42,7 +58,8 @@ public class ServerReadHandler extends SimpleChannelInboundHandler<RpcProtocol> 
                 RpcProtocol protocol = new RpcProtocol();
                 protocol.setCmdId(msg.getCmdId());
                 protocol.setType(msg.getType());
-                protocol.setData(serializerHolder.getSerializer().serialize(bean));
+                protocol.setSerializer(msg.getSerializer());
+                protocol.setData(serializer.serialize(bean));
                 ctx.channel().writeAndFlush(protocol);
             }
         }
