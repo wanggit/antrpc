@@ -18,6 +18,7 @@ Another Tool for RPC
 17. 优雅停机
 18. 服务控制台（未完成）
 19. telnet命令运维
+20. 泛化调用
 
 
 ##### TODO
