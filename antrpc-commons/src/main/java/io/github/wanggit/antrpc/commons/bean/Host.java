@@ -1,10 +1,10 @@
 package io.github.wanggit.antrpc.commons.bean;
 
 import lombok.Data;
-import lombok.ToString;
 import org.apache.commons.lang3.math.NumberUtils;
 
-@ToString
+import java.util.Objects;
+
 @Data
 public class Host {
     private String ip;
@@ -18,6 +18,16 @@ public class Host {
         }
         this.ip = ip;
         this.port = port;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Host)) {
+            return false;
+        }
+        Host other = (Host) obj;
+        return Objects.equals(other.getIp(), getIp())
+                && other.getPort().intValue() == port.intValue();
     }
 
     public String getHostInfo() {

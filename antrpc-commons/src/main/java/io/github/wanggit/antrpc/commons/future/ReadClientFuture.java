@@ -5,6 +5,7 @@ import io.github.wanggit.antrpc.commons.bean.RpcResponseBean;
 import io.github.wanggit.antrpc.commons.codec.serialize.ISerializer;
 import io.github.wanggit.antrpc.commons.codec.serialize.SerializerFactory;
 import io.github.wanggit.antrpc.commons.codec.serialize.json.JsonSerializer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Slf4j
 public class ReadClientFuture {
 
     private final Lock lock = new ReentrantLock();
@@ -41,7 +43,21 @@ public class ReadClientFuture {
                 result = response;
             }
             if (null != result) {
-                return (RpcResponseBean) serializer.deserialize(result.getData());
+                Object object = serializer.deserialize(result.getData());
+                try {
+                    return (RpcResponseBean) object;
+                } catch (ClassCastException e) {
+                    if (log.isErrorEnabled()) {
+                        log.error(
+                                "Class Cast Error. Expected: "
+                                        + RpcResponseBean.class
+                                        + ", Actual: "
+                                        + object.getClass()
+                                        + ", Actual Value: "
+                                        + object);
+                    }
+                    throw e;
+                }
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

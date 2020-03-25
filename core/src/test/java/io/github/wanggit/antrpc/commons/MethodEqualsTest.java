@@ -1,7 +1,7 @@
 package io.github.wanggit.antrpc.commons;
 
 import io.github.wanggit.antrpc.client.zk.zknode.ZkNodeBuilder;
-import io.github.wanggit.antrpc.client.zk.zknode.ZkNodeType;
+import io.github.wanggit.antrpc.commons.zookeeper.ZkNodeType;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.junit.Test;
 import org.springframework.util.ReflectionUtils;
