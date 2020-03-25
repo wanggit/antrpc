@@ -8,6 +8,7 @@ import io.github.wanggit.antrpc.client.zk.register.RegisterBeanHelper;
 import io.github.wanggit.antrpc.commons.config.Configuration;
 import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.test.WaitUtil;
+import io.github.wanggit.antrpc.commons.zookeeper.Node;
 import org.apache.zookeeper.data.Stat;
 import org.junit.Assert;
 import org.junit.Test;

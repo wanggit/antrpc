@@ -22,6 +22,7 @@ import io.github.wanggit.antrpc.commons.constants.ConstantValues;
 import io.github.wanggit.antrpc.commons.future.ReadClientFuture;
 import io.github.wanggit.antrpc.commons.utils.AntRpcClassUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
 
@@ -140,6 +141,9 @@ public class CglibMethodInterceptor implements MethodInterceptor {
                 throw new CircuitBreakerWasOpenException(errorMessage);
             }
         } catch (Throwable throwable) {
+            if (log.isErrorEnabled()) {
+                log.error(createErrorMessage(hostEntity, rpcRequestBean), throwable);
+            }
             if (null != rpcCallLog) {
                 if (null != hostEntity) {
                     rpcCallLog.setIp(hostEntity.getIp());
@@ -167,6 +171,28 @@ public class CglibMethodInterceptor implements MethodInterceptor {
             }
         }
         return null;
+    }
+
+    private String createErrorMessage(NodeHostEntity hostEntity, RpcRequestBean rpcRequestBean) {
+        StringBuilder builder = new StringBuilder("Error. ");
+        if (null != rpcRequestBean) {
+            builder.append(
+                    "Invoke "
+                            + rpcRequestBean.getFullClassName()
+                            + "#"
+                            + rpcRequestBean.getMethodName()
+                            + "("
+                            + StringUtils.join(rpcRequestBean.getArgumentTypes(), ",")
+                            + ")@");
+        }
+        if (null != hostEntity) {
+            builder.append(hostEntity.getHostInfo());
+        }
+        if (null != rpcRequestBean) {
+            builder.append(
+                    ". Arguments = " + JSONObject.toJSONString(rpcRequestBean.getArgumentValues()));
+        }
+        return builder.toString();
     }
 
     private Object doInternalSendWhenCircuitBreakerClosed(

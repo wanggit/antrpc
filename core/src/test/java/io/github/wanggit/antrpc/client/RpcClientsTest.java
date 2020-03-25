@@ -1,8 +1,6 @@
 package io.github.wanggit.antrpc.client;
 
-import com.google.common.collect.Lists;
 import io.github.wanggit.antrpc.AntrpcContext;
-import io.github.wanggit.antrpc.client.zk.register.RegisterBean;
 import io.github.wanggit.antrpc.commons.annotations.RpcMethod;
 import io.github.wanggit.antrpc.commons.annotations.RpcService;
 import io.github.wanggit.antrpc.commons.codec.cryption.AESCodec;
@@ -18,7 +16,9 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class RpcClientsTest {
 
@@ -41,12 +41,6 @@ public class RpcClientsTest {
     public void testServiceProviderRaiseException() throws InterruptedException {
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
-        RegisterBean registerBean =
-                createRegisterBeanCommons(
-                        rpcPort,
-                        Test3Interface.class.getName(),
-                        "sayHello",
-                        Lists.newArrayList("java.lang.String"));
         Map<String, Object> singletons = new HashMap<>();
         singletons.put(Test3Impl.class.getName(), new Test3Impl());
         createRpcServer(
@@ -54,7 +48,6 @@ public class RpcClientsTest {
                 rpcPort,
                 "testServiceProviderRaiseExceptionServer",
                 singletons,
-                Lists.newArrayList(registerBean),
                 new ConfigurationCallback() {
                     @Override
                     public void initConfiguration(Configuration configuration) {}
@@ -78,11 +71,24 @@ public class RpcClientsTest {
         test3Interface.sayHello("wanggang");
     }
 
+    @RpcService
+    interface Test2Interface {
+        @RpcMethod
+        String sendMoreMessage(String content);
+    }
+
+    public static class Test2Impl implements Test2Interface {
+
+        @Override
+        public String sendMoreMessage(String content) {
+            return content;
+        }
+    }
+
     @Test
     public void testHeartBeat() throws InterruptedException {
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
-        RegisterBean registerBean = createRegisterBean2(rpcPort);
         Map<String, Object> singletons = new HashMap<>();
         singletons.put(Test2Impl.class.getName(), new Test2Impl());
         createRpcServer(
@@ -90,7 +96,6 @@ public class RpcClientsTest {
                 rpcPort,
                 "testHeartBeatServer",
                 singletons,
-                Lists.newArrayList(registerBean),
                 new ConfigurationCallback() {
                     @Override
                     public void initConfiguration(Configuration configuration) {}
@@ -115,21 +120,41 @@ public class RpcClientsTest {
         WaitUtil.wait(20, 1);
     }
 
+    @RpcService
+    interface Test4Interface {
+        @RpcMethod
+        String doMethod();
+
+        @RpcMethod
+        String sendMoreMessage(String content);
+    }
+
+    public static class Test4Impl implements Test4Interface {
+
+        @Override
+        public String doMethod() {
+            return "Hello Test";
+        }
+
+        @Override
+        public String sendMoreMessage(String content) {
+            return content;
+        }
+    }
+
     @Test
     public void testCodecAndZipDoRpc() throws Exception {
         String key = UUID.randomUUID().toString();
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
-        RegisterBean registerBean = createRegisterBean(rpcPort);
         Map<String, Object> singletons = new HashMap<>();
-        singletons.put(TestImpl.class.getName(), new TestImpl());
+        singletons.put(Test4Impl.class.getName(), new Test4Impl());
         createRpcServer(
                 httpPort,
                 rpcPort,
                 "testServer",
                 singletons,
-                Lists.newArrayList(registerBean),
                 new ConfigurationCallback() {
                     @Override
                     public void initConfiguration(Configuration configuration) {
@@ -153,9 +178,9 @@ public class RpcClientsTest {
                             }
                         });
         Assert.assertTrue(clientAntrpcContext.getCodecHolder().getCodec() instanceof AESCodec);
-        Object bean = clientAntrpcContext.getBeanContainer().getOrCreateBean(TestInterface.class);
-        Assert.assertTrue(bean instanceof TestInterface);
-        TestInterface testInterface = (TestInterface) bean;
+        Object bean = clientAntrpcContext.getBeanContainer().getOrCreateBean(Test4Interface.class);
+        Assert.assertTrue(bean instanceof Test4Interface);
+        Test4Interface testInterface = (Test4Interface) bean;
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < 1000; i++) {
             builder.append(RandomStringUtils.randomAlphanumeric(50));
@@ -164,21 +189,41 @@ public class RpcClientsTest {
         Assert.assertEquals(result, builder.toString());
     }
 
+    @RpcService
+    interface Test5Interface {
+        @RpcMethod
+        String doMethod();
+
+        @RpcMethod
+        String sendMoreMessage(String content);
+    }
+
+    public static class Test5Impl implements Test5Interface {
+
+        @Override
+        public String doMethod() {
+            return "Hello Test";
+        }
+
+        @Override
+        public String sendMoreMessage(String content) {
+            return content;
+        }
+    }
+
     @Test
     public void testCodecDoRpc() throws Exception {
         String key = UUID.randomUUID().toString();
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
-        RegisterBean registerBean = createRegisterBean(rpcPort);
         Map<String, Object> singletons = new HashMap<>();
-        singletons.put(TestImpl.class.getName(), new TestImpl());
+        singletons.put(Test5Impl.class.getName(), new Test5Impl());
         createRpcServer(
                 httpPort,
                 rpcPort,
                 "testServer",
                 singletons,
-                Lists.newArrayList(registerBean),
                 new ConfigurationCallback() {
                     @Override
                     public void initConfiguration(Configuration configuration) {
@@ -202,11 +247,33 @@ public class RpcClientsTest {
                             }
                         });
         Assert.assertTrue(clientAntrpcContext.getCodecHolder().getCodec() instanceof AESCodec);
-        Object bean = clientAntrpcContext.getBeanContainer().getOrCreateBean(TestInterface.class);
-        Assert.assertTrue(bean instanceof TestInterface);
-        TestInterface testInterface = (TestInterface) bean;
+        Object bean = clientAntrpcContext.getBeanContainer().getOrCreateBean(Test5Interface.class);
+        Assert.assertTrue(bean instanceof Test5Interface);
+        Test5Interface testInterface = (Test5Interface) bean;
         String result = testInterface.doMethod();
         Assert.assertEquals(result, "Hello Test");
+    }
+
+    @RpcService
+    interface TestInterface {
+        @RpcMethod
+        String doMethod();
+
+        @RpcMethod
+        String sendMoreMessage(String content);
+    }
+
+    public static class TestImpl implements TestInterface {
+
+        @Override
+        public String doMethod() {
+            return "Hello Test";
+        }
+
+        @Override
+        public String sendMoreMessage(String content) {
+            return content;
+        }
     }
 
     @Test
@@ -214,7 +281,6 @@ public class RpcClientsTest {
         // server
         int httpPort = RandomUtils.nextInt(2000, 9999);
         int rpcPort = RandomUtils.nextInt(2000, 9999);
-        RegisterBean registerBean = createRegisterBean(rpcPort);
         Map<String, Object> singletons = new HashMap<>();
         singletons.put(TestImpl.class.getName(), new TestImpl());
         createRpcServer(
@@ -222,7 +288,6 @@ public class RpcClientsTest {
                 rpcPort,
                 "testServer",
                 singletons,
-                Lists.newArrayList(registerBean),
                 new ConfigurationCallback() {
                     @Override
                     public void initConfiguration(Configuration configuration) {}
@@ -255,46 +320,6 @@ public class RpcClientsTest {
         codecConfig.setKey(key);
         codecConfig.setType(AESCodec.class.getName());
         return codecConfig;
-    }
-
-    private RegisterBean createRegisterBean(int rpcPort) {
-        RegisterBean registerBean = new RegisterBean();
-        registerBean.setClassName(TestInterface.class.getName());
-        registerBean.setPort(rpcPort);
-        List<RegisterBean.RegisterBeanMethod> registerBeanMethods = new ArrayList<>();
-        RegisterBean.RegisterBeanMethod registerBeanMethod = new RegisterBean.RegisterBeanMethod();
-        registerBeanMethod.setMethodName("doMethod");
-        registerBeanMethod.setParameterTypeNames(new ArrayList<>());
-        registerBeanMethods.add(registerBeanMethod);
-        registerBean.setMethods(registerBeanMethods);
-        return registerBean;
-    }
-
-    private RegisterBean createRegisterBean2(int rpcPort) {
-        RegisterBean registerBean = new RegisterBean();
-        registerBean.setClassName(Test2Interface.class.getName());
-        registerBean.setPort(rpcPort);
-        List<RegisterBean.RegisterBeanMethod> registerBeanMethods = new ArrayList<>();
-        RegisterBean.RegisterBeanMethod registerBeanMethod = new RegisterBean.RegisterBeanMethod();
-        registerBeanMethod.setMethodName("sendMoreMessage");
-        registerBeanMethod.setParameterTypeNames(Lists.newArrayList("java.lang.String"));
-        registerBeanMethods.add(registerBeanMethod);
-        registerBean.setMethods(registerBeanMethods);
-        return registerBean;
-    }
-
-    private RegisterBean createRegisterBeanCommons(
-            int rpcPort, String className, String methodName, List<String> parameterTypes) {
-        RegisterBean registerBean = new RegisterBean();
-        registerBean.setClassName(className);
-        registerBean.setPort(rpcPort);
-        List<RegisterBean.RegisterBeanMethod> registerBeanMethods = new ArrayList<>();
-        RegisterBean.RegisterBeanMethod registerBeanMethod = new RegisterBean.RegisterBeanMethod();
-        registerBeanMethod.setMethodName(methodName);
-        registerBeanMethod.setParameterTypeNames(parameterTypes);
-        registerBeanMethods.add(registerBeanMethod);
-        registerBean.setMethods(registerBeanMethods);
-        return registerBean;
     }
 
     private AntrpcContext createRpcClient(
@@ -337,7 +362,6 @@ public class RpcClientsTest {
             int rpcPort,
             String serverName,
             Map<String, Object> singletons,
-            List<RegisterBean> registerBeans,
             ConfigurationCallback configurationCallback) {
         // server
         GenericApplicationContext genericApplicationContext = new GenericApplicationContext();
@@ -347,7 +371,6 @@ public class RpcClientsTest {
                 .withProperty("antrpc.port", String.valueOf(rpcPort))
                 .withProperty("spring.application.name", serverName);
         genericApplicationContext.setEnvironment(environment);
-        genericApplicationContext.refresh();
         if (null != singletons) {
             for (Map.Entry<String, Object> entry : singletons.entrySet()) {
                 GenericBeanDefinition genericBeanDefinition = new GenericBeanDefinition();
@@ -356,6 +379,7 @@ public class RpcClientsTest {
                         .registerBeanDefinition(entry.getKey(), genericBeanDefinition);
             }
         }
+        genericApplicationContext.refresh();
 
         AntrpcContext antrpcContext = new AntrpcContext(new Configuration());
         configurationCallback.initConfiguration((Configuration) antrpcContext.getConfiguration());
@@ -365,42 +389,6 @@ public class RpcClientsTest {
         configuration.setStartServer(true);
         configuration.setEnvironment(environment);
         antrpcContext.init(genericApplicationContext);
-    }
-
-    @RpcService
-    interface TestInterface {
-        @RpcMethod
-        String doMethod();
-
-        @RpcMethod
-        String sendMoreMessage(String content);
-    }
-
-    @RpcService
-    interface Test2Interface {
-        @RpcMethod
-        String sendMoreMessage(String content);
-    }
-
-    public static class Test2Impl implements Test2Interface {
-
-        @Override
-        public String sendMoreMessage(String content) {
-            return content;
-        }
-    }
-
-    public static class TestImpl implements TestInterface {
-
-        @Override
-        public String doMethod() {
-            return "Hello Test";
-        }
-
-        @Override
-        public String sendMoreMessage(String content) {
-            return content;
-        }
     }
 
     interface ConfigurationCallback {

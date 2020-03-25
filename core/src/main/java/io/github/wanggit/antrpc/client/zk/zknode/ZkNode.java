@@ -1,5 +1,6 @@
 package io.github.wanggit.antrpc.client.zk.zknode;
 
+import io.github.wanggit.antrpc.commons.zookeeper.Node;
 import org.apache.zookeeper.data.Stat;
 
 public abstract class ZkNode<T> implements Node<T> {

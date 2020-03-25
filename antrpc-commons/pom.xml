@@ -13,6 +13,18 @@
     <version>2.0.3-SNAPSHOT</version>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>${curator-recipes.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.springframework/spring-context -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -20,6 +32,7 @@
             <version>5.2.2.RELEASE</version>
             <scope>compile</scope>
         </dependency>
+
     </dependencies>
 
 </project>

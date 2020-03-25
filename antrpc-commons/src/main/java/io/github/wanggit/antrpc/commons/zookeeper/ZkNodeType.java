@@ -1,6 +1,6 @@
-package io.github.wanggit.antrpc.client.zk.zknode;
+package io.github.wanggit.antrpc.commons.zookeeper;
 
-public class ZkNodeType {
+public abstract class ZkNodeType {
 
     public enum Type {
         ROOT,

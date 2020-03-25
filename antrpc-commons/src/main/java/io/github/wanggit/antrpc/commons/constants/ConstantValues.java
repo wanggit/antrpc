@@ -79,6 +79,9 @@ public interface ConstantValues {
     /** 服务之间连接的熔断器状态检查时间周期，表示10秒内出现5次连接断开，就打开熔断器 */
     int CONNECTION_CIRCUIT_BREAKER_CHECK_INTERVAL_SECONDS = 20;
 
+    /** 泛化调用起点 */
+    String GENERIC_CALLER = "generic_caller";
+
     String BANNER =
             "\n"
                     + "     _          _   ____             \n"
